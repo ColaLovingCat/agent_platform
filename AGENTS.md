@@ -14,6 +14,7 @@
 - 明确推迟的范围：个人助手、开放市场、自主多 Agent、任意代码执行
 - 做成的标准先定一个主指标：任务完成率、人工介入率、首字时延、整次任务时延
 - 非目标写在本节，避免每个模块都被当成第一期
+- 先用下一节的品类确定本平台站在哪一层，再填写上面的用户和场景
 
 ## 总体架构与运行机制
 回答：系统由哪些层组成，各层如何协作？
@@ -286,3 +287,111 @@ Identity & Permission · Delegation · Security · Audit · Observability · Eva
 数据与资源层：模型、工具、知识、文件、记忆，以及 SQL、对象存储、向量、队列。
 接入与触发：API、定时、入站 Webhook。它们创建 Task，Task 可以不依附会话。
 工程基础设施：测试、部署、监控、升级。开发、预发、生产的配置和密钥按环境分开。
+
+## 成熟产品分析
+回答：成熟产品里，哪些做法值得写进本平台？
+
+整理于 2026-10，依据各产品公开文档和同期的行业分类。条目记录稳定做法。价格、预览开关和产品改名不写入。
+
+### 品类
+同一份「Agent 能力清单」不能直接横比。先看产品站在哪一层。
+
+- 企业套件中的搭建台：Microsoft Copilot Studio、Salesforce Agentforce、ServiceNow AI Agent Studio。身份、数据和渠道继承自原有套件。
+- 云上的托管运行时：Microsoft Foundry Agent Service、Google Gemini Enterprise / Vertex Agent Runtime、Amazon Bedrock AgentCore、阿里云百炼、百度千帆。厂商托管执行循环，并提供注册、网关和观测。
+- 低代码应用：扣子、Dify。扣子侧重插件、模板和多渠道发布；Dify 侧重知识库管线、多模型和自托管。字节企业侧另有 HiAgent，面向私有化全生命周期。
+- 开发框架：OpenAI Agents SDK、LangGraph、Google ADK、Microsoft Agent Framework。执行循环跑在使用方自己的进程或配套运行时里。身份、审计和发布要另补。
+- 流程自动化中的模型步骤：n8n、Zapier、UiPath。路径事先画好，模型处理其中若干节点。
+- 模型厂商的工作台：OpenAI Workspace Agents、Claude Cowork。面向知识员工的云端或桌面入口。
+- 桌面办公工作台：腾讯 WorkBuddy。用自然语言下任务，交付可验收的文件。专家、技能、连接器分开，执行落在授权文件夹或云端沙箱。
+- 编程 Agent：Cursor、Claude Code、Codex。工作区是代码仓库，交付物是可审查的 diff。审批、沙箱、网络分成三道控制。
+- 对话与客服：Cognigy、Kore.ai。衡量一次对话能否结束，以及何时转人工。
+
+### 可借鉴的条目
+
+产品边界
+
+- 先选定工作已经发生的系统，再做 Agent。Copilot Studio 站在 Microsoft 365，Agentforce 站在 Salesforce，百炼延伸到钉钉，千帆多落在知识密集和政务。第一版要写出身份、数据和渠道来自哪一个系统。
+- 业务人员搭建和工程师搭建是两条作者路径，发布进入同一个注册表。Copilot Studio 用画布；Foundry、ADK、Agents SDK 用代码。ADK 同时提供 YAML 配置。
+- 执行形态分成三种，产品会并列提供，默认搭建方式只强调一种。对话循环由模型决定下一步，OpenAI Agents SDK 的 Agent 与 Runner 是这种。工作流把节点事先连好，Dify、扣子、千帆 DAG、n8n 是这种。协调者把任务分给工作者，千帆把这一种单独做成编排模式，并预置网页探索、代码、报告等子 Agent。
+- Foundry 把 Prompt agent、Workflow agent、Hosted agent 分成三种运行形态。截至 2026-05，第一种已正式提供，后两种仍在预览。长任务容器和自由多 Agent 可以晚于第一种。
+
+定义、版本与发布
+
+- 草稿和已发布版本分开。OpenAI 的 Workspace Agents 提供快照、发布前预览、发布权限和版本历史。Kore.ai、Cognigy、UiPath、SAP Joule Studio 都把开发、预发、生产分成可晋升的环境。
+- 注册表决定一个 Agent 能否部署，以及它能调用哪些工具。Google Agent Registry、Microsoft 365 Agent Registry 都把这件事从 Agent 正文里拆出去。
+- 调试先于发布。ADK 提供本地 Web、命令行和评测命令；Foundry 在门户里提供 playground。Copilot Studio 的测试留在门户内，执行循环不能拿到厂商环境外面跑。
+
+会话、运行与记忆
+
+- 一次对话是 thread 或 session，其中一次执行是 run。Foundry 的对象就是 Threads 与 Runs。恢复时用同一个 thread 取回状态。
+- 短期状态和长期记忆分两个存储。LangGraph 用 checkpointer 按 thread 保存步骤，用 store 跨 thread 保存偏好和事实。Google Memory Bank 把跨会话记忆做成独立服务，并与运行时分开计费。Foundry、OpenAI Agents SDK、Copilot Studio 的长期记忆仍要自建。短期 thread 是运行时的一部分，长期记忆可以后置。
+- 等人时先把检查点写下来，再用同一个 thread 恢复。LangGraph 的 interrupt 把暂停载荷交给调用方，恢复值写回该节点。该节点在暂停前的写操作要幂等，因为恢复会从节点开头重跑。
+
+工具、知识与协议
+
+- 工具分成三类：平台托管工具、业务函数或 OpenAPI、MCP。托管工具常见的是网页搜索、文件检索、代码解释器。OpenAI、Foundry、ADK、Copilot Studio 都按这三类接。
+- MCP 连接工具，A2A 连接 Agent。多家企业平台已经接 MCP；A2A 出现得更晚。工具协议进第一版，Agent 互通协议可以后置。
+- 每个工具声明调用时用谁的身份，并带过滤和审批。OpenAI Agents SDK 对 MCP 提供工具过滤和审批策略。Copilot Studio 的事件触发使用搭建者的凭证，不使用当前聊天用户的凭证。
+- 原型期靠插件市场加快，企业落地靠已有系统的连接器。扣子以内置插件取胜；Copilot Studio 接 Power Platform 连接器，Agentforce 接 Salesforce 数据。第一版优先连接器。
+- 知识是一条管线：文件、解析、切分、索引、引用、权限。Dify 把这条管线做成产品核心。千帆一类落地常走「文件、知识、可审的服务」。回答要能回到原文，引用是发布条件的一部分。
+
+身份、渠道与触发
+
+- 使用人身份和 Agent 自己的工作负载身份同时存在。Foundry 用 Entra，访问下游时可传递用户的 On-Behalf-Of 凭证。Google 为每个 Agent 发 Agent Identity，工具调用经过 Agent Gateway 做策略。OpenAI Agents SDK 只持有模型 API 密钥，使用人认证由接入方自己做。
+- 同一个 Agent 定义发到多个渠道。Copilot Studio 覆盖 Teams、网页、邮件和多种即时通讯。Vertex 与 Agents SDK 只提供 API，渠道由接入方实现。渠道是适配器，不写进 Agent 定义。
+- 定时和外部事件是与聊天并列的入口。Copilot Studio 通过 Power Automate 接 SharePoint、日程等触发。触发出来的运行使用策略里规定的身份。
+- 对内登录和对外匿名链接分开配置。Copilot Studio 既允许 Entra 登录，也允许公开链接不登录。
+
+上下文、安全与成本
+
+- 指令、工具、护栏是 Agent 定义上的并列字段。OpenAI Agents SDK 的 Agent 直接包含 instructions、tools、mcp_servers、guardrails。护栏不靠把禁止事项继续堆进指令。
+- 模型输入输出有独立的拦截策略。千帆支持对输入输出配置安全策略和自定义干预。写 Trace 时要能脱敏，LangSmith 支持在上报前做匿名化。
+- 账单按 Run 拆开：模型 Token、工具调用、运行时长或事件数、沙箱计算、记忆的存储与检索。Google 对运行时的计算、事件和 Memory Bank 分开计价。只记 Token 会漏掉会话和沙箱。
+- 对外报价可以用对话次数或积分包装，内部账本仍按 Run 记录。Agentforce、Copilot Studio 面向客户用对话或积分，底层仍对应一次次执行。
+
+观测、评测与审计
+
+- 每次运行默认留下 Trace，盖住模型调用、工具、交接和护栏。OpenAI 的 Runner 自动包一层 trace。LangSmith 同时提供原始 Trace，以及按对话阅读的 Trajectory。用户看到步骤，运维看到 Trace，两边用同一关联 ID。
+- 发布前用数据集重放，线上 Trace 可以回流成新的评测样本。ADK 提供 adk eval。控制面把模拟、评测、观测分成相邻的能力，而不是同一次运行的日志。
+- 审计记录谁发布、谁改了权限。Trace 记录这一次 Run 做了什么。千帆把控制台操作送云审计，把运行日志送日志服务。
+
+部署与隔离
+
+- 作者体验可以一样，交付分成公有云和自托管。Dify、Coze Studio、n8n 把自托管作为购买理由。云上扣子和开源 Coze Studio 的功能范围不同，要分开核对。
+- 代码解释器和计算机操作是托管工具，跑在独立沙箱里。OpenAI、Foundry、ADK 都把它们从业务 Tool 里拆出。本机直接改文件、跑命令的做法见下面两组。
+
+办公工作台（WorkBuddy）
+
+- 主对象是任务。侧边栏同时挂着多个任务；云端任务在客户端关闭后继续跑。界面会话和 Run 分开。
+- 交付物是可验收的文件，例如文档、表格、演示和报告。对话用来下任务和看过程。
+- 专家、Skill、连接器分成三层。专家携带领域方法和角色，自身不拿系统权限。Skill 是可执行的方法。连接器和 MCP 在用户授权后才访问外部系统。专家团把多个专家组织进同一次任务。
+- 连接器在真正用到时才请求授权。任务碰到腾讯文档、TAPD 等尚未连接的服务时，出现连接卡片；授权完成后继续当前任务。
+- 项目是注入单位。成员发起任务时，自动带上项目指令、专家、Skill、连接器和资料。项目配置存在云端，成员共享。个人授权的票据只留在成员本机；协作任务里禁用个人连接器，只用公共授权。
+- 能力能不能被这次 Run 看见，取决于它放在哪一端。Web 与客户端的个人 Skill 库互不相通。云端任务只能使用云端个人库里的 Skill，也读不到本机文件。项目级 Skill 在云端统一，两端一致。
+- 工作空间是这次任务的文件夹。默认权限下，工作空间内的普通写入可以直接做；敏感路径、删除、脚本和网络停下来等确认。用户取消这一步后，任务还在，可以改成先出文件清单或预览。
+- 完全放行的范围要写明。WorkBuddy 的完全访问是当前客户端的全局开关，会作用到已有任务和之后新建的任务，而且不跨设备。这种档位只适合隔离目录或虚拟机，用完要关回默认权限。
+- 沙箱按路径、命令前缀、域名分别设允许、询问、拒绝。修改已有文件前做一份备份，同一次轮次里同一文件只备一次。敏感信息在读入和对外动作前检测；允许加密后，上下文里走密文，输出时再还原。
+- 工具管控在调用前拦截，粒度到单个工具或整个 MCP 服务，对当前客户端里的所有 Agent 生效。
+- 定时任务自己带提示词、模型、专家、Skill、连接器、工作空间、权限档和结果推送。触发时沿用登录身份和已经授权的凭证，不另存一套密钥。本地、项目、云端是三种执行位置，云端沙箱碰不到本机文件。
+
+编程 Agent（Cursor、Claude Code、Codex）
+
+- 工作区是仓库或用户授权的目录，交付物是 diff。用户按文件接受或拒绝。确认点落在改动和命令上。
+- 审批、沙箱、网络是三道独立控制。审批决定要不要先问人：Claude Code 用权限模式，其中 plan 先限制副作用；Codex 用 approval policy，并另有 read-only、workspace-write、danger-full-access 等沙箱档；Cursor 用 Auto-review、Allowlist、Run Everything，并写明 Auto-review 本身不是安全边界。Claude Code 的 Bash 沙箱只管 shell，文件读写工具走另一套权限规则。云端 Agent 跑在单独的机器里，不沿用本机的审批档。
+- 规则和 Skill 只改变模型看到的内容。真正拦住动作的是沙箱、权限规则和 Hook。企业可以把拒绝规则和沙箱要求下发到客户端。
+- Skill 放在仓库的约定目录里，随仓库版本一起走，例如 `.cursor/skills`、`.claude/skills`、`.agents/skills`。提示里先放简短目录，正文在用到时再读入，避免每份技能全文常驻窗口。
+- 子任务用独立上下文做探索或执行命令，只把摘要交还主线程，避免工具输出占满主会话。
+- 并行的 Run 各写隔离的工作副本。编程产品用独立 worktree 或云端机器；办公产品用独立任务文件夹。多个 Run 写同一份文件会互相覆盖。
+- 产品自己的检查点用来回退 Agent 改过的文件，和用户的版本管理不是同一份记录。WorkBuddy 在改文件前做的会话备份属于前一种。
+- 同一次任务可以更换模型。指令、Skill 和权限档留在任务上，不跟着模型走。
+
+### 对本文各节的用法
+
+- 产品取舍先写品类和所继承的系统，再写用户与场景。
+- 第一版的执行形态在对话循环和工作流里选一种。协调者和自由多 Agent 继续放在工作流的后置范围。
+- 短期 thread、检查点、幂等恢复写入运行时。长期记忆、插件市场、A2A、计算机操作保持后置。
+- 工具按托管、业务 API、MCP 登记，并写明使用谁的凭证。
+- Trace 与审计维持现在的归属。成本账本按 Run 拆 Token、工具和沙箱。
+- 面向办公交付时，按 WorkBuddy 区分任务、工作空间、专家、Skill、连接器。专家不持有凭证。个人凭证不进项目共享配置。
+- 会改文件或跑命令时，审批、沙箱、网络分开写。完全放行只对隔离环境，并写明作用范围是这一次 Run、这个工作空间，还是整台客户端。
+- 云端 Run 看不到本机文件和本机 Skill。并行 Run 使用隔离的工作副本。
