@@ -2,30 +2,48 @@
 
 ## 产品能力全景图
 回答：产品为什么存在、为谁服务、解决什么问题？
-- 产品类型：个人 Agent、企业 Agent Platform、多 Agent 协作平台
+- 产品类型：
+A. 通用型 Agent 问答
+B. 企业 Agent Platform 能力（审计/SSO/审批流/私有化/计费）
+C. 多 Agent 协作（编排器/角色/任务拆分） 
+D. 流程自动化（触发器/定时/可视化编排）
+E. 轻应用搭建（Vibe Coding：页面/表单/数据模型）
 - 目标用户：普通用户、开发者、业务人员、管理员
-- 核心场景：知识问答、流程自动化、数据分析、系统操作、复杂任务执行
+- 核心场景：知识问答、流程自动化、数据分析、复杂任务执行、轻应用搭建
 - 产品边界：什么由 Agent 自主完成，什么需要人类确认
 - 成熟度目标：Demo、可用产品、企业级生产平台
 
-## 产品取舍
-回答：第一版服务谁，只做哪个场景，哪些明确推迟？
-- 第一版只保留一类用户、一条主场景，其余场景写成后续阶段
-- 明确推迟的范围：个人助手、开放市场、自主多 Agent、任意代码执行
-- 做成的标准先定一个主指标：任务完成率、人工介入率、首字时延、整次任务时延
-- 非目标写在本节，避免每个模块都被当成第一期
-- 先用下一节的品类确定本平台站在哪一层，再填写上面的用户和场景
-
 ## 总体架构与运行机制
 回答：系统由哪些层组成，各层如何协作？
-- 前端交互层：Web UI、工作台、对话界面
+- 前端交互层：Web UI、工作台、Chatbot 界面
+- 产品编排层: 轻应用搭建、多 Agent 协作、Workflow 流程自动化
 - 平台核心层：Agent 管理、任务调度、运行时
-- 智能执行层：LLM、Planning、Reasoning、工具调用
-- 能力资源层：Skills、Tools、Knowledge、Memory
-- 数据与基础设施层：数据库、对象存储、消息队列、模型服务
+- 智能执行层：执行引擎、LLM、Planning、Reasoning、工具调用
+- 能力资源层：Skills、Tools、Knowledge 知识库、Memory 会话记忆
+- 数据与基础设施层：数据库 DB、对象存储、消息队列 MQ、模型服务
 - 横向治理层：安全、权限、可观测性、审计、成本控制
 
-一次任务的路径：接入层创建 Task，Runtime 加载指定 AgentVersion，组装上下文，调用模型，按策略调用 Tool，把 Step 写成 Event，再推回界面或 Webhook。
+## 任务路径
+```
+触发器（API / Webhook / 聊天 / 定时）
+  → 接入层创建 Task（带 agent 指定、参数、来源、租户、超时）
+  → 任务调度：入 MQ，状态 → pending
+  → Runtime 路由执行者（按任务类型选主/子 Agent，加载 System Prompt）
+  → 组装上下文：任务参数 + 历史 + 知识检索 + 工具清单（按需注入）
+  → 执行循环（ReAct，受预算控制：轮数/token/时间）：
+       1. 调用模型（流式）
+       2. 解析输出：
+          - 最终答案 → 结束
+          - 工具调用 → 校验参数/权限
+                ├─ L1/L2 → 沙箱执行工具
+                └─ L3 → 发 HumanConfirmationRequired 事件，状态 → waiting_human
+          - 工具结果 → 回填上下文 → 回到步骤 1
+       3. 任一步失败 → 按策略重试/降级
+  → 每一步发类型化 Event（AgentStarted / ModelCalled / ToolCalled /
+       ToolResult / HumanConfirmationRequired / AgentFinished / Error）
+  → 事件推送：界面（SSE/WS 流式）+ Webhook + 事件总线（审计/监控）
+  → 任务状态落库 → 结束
+```
 
 ## 领域模型
 回答：核心对象有哪些，谁拥有谁，哪份数据是事实来源？
@@ -36,22 +54,61 @@
 - 一次对话能否包含多个 Task；一个 Task 能否有多次 Run
 - 运行绑定发布时的 AgentVersion，还是当前 Active 版本
 - 文件、记忆、知识的归属是用户、会话、任务，还是工作区
+生命周期原则：Session 结束清会话记忆，Task 完成清临时产物，Workspace 知识长期保留。
+```
+KnowledgeSource → Workspace（团队共享资产；Tenant 级可跨 workspace 共享）
+MemoryItem      → 按作用域分：Agent 长期记忆归 Agent / 会话记忆归 Session / 用户偏好归 User
+File            → 按来源分：用户上传附件归 User / Agent 产物归 Task / 共享文件归 Workspace
+Credential      → 归 Tenant 或 Workspace（加密存储），Agent/工具只"引用"不"持有"
+```
 - 每个对象只有一个写入方。会话、任务、审计不各写一份互相冲突的状态
+```
+组织/用户     → 身份服务（唯一写入）
+Agent 定义    → AgentVersion 快照（不可变，一旦发布只读）
+运行状态      → Task/Run 聚合，TaskService 唯一写入
+事实/审计     → Event 日志（不可变追加，所有"发生了什么"的唯一真相）
+凭证         → Credential 服务（加密，专用写入）
+记忆         → MemoryService（唯一写入）
+文件         → FileService + 对象存储（唯一写入）
+```
 
 ## Agent 生命周期与运行时
 回答：一个 Agent 如何从创建走向稳定运行？
 - 创建、配置、版本管理、发布、停用
 - Agent 身份：Name、Description、Instructions、配置
 - 执行循环：理解任务、规划、调用工具、观察结果、继续执行
-- 单 Agent 如何运行。多 Agent 的计划和 Agent 之间的消息归工作流与协作
+- 单 Agent 如何运行 = "一个 Agent 的一次 Run"。多 Agent 的计划和 Agent 之间的消息归工作流与协作。编排器把 Task 拆成多个子任务 → 每个子任务路由给对应 Agent → 各自产生 Run → Agent 间消息走事件总线/工作流状态
 - 任务状态、超时、重试、暂停、恢复、取消
-- 长任务执行与人工介入
+- 长任务执行与人工介入。
+```
+长任务：异步 + 进度 Event 流 + 任务状态可随时查询
+人工介入：waiting_human + Approval 对象 + 事件通知（界面按钮/Webhook）
+等待超时：人工确认设超时（如 24h），超时按策略转 cancelled 或提醒重试
+```
+- 输出的内容包含可定义的category、内容、状态、进度、Plan等信息
 
-定义状态与运行状态分开记。定义状态是 Draft、Validated、Tested、Published、Active。运行状态是 queued、running、waiting_tool、waiting_human、succeeded、failed、cancelled、timed_out。
+定义状态与运行状态分开记。定义状态是 Draft、Validated、Tested、Published、Active or Deprecated、Archived。运行状态是 queued、running、waiting_tool、waiting_human、succeeded、failed、cancelled、timed_out。
 - 暂停、取消的操作者是用户、管理员，还是系统策略
 - 失败重试生成新 Run，还是在同一 Run 里增加 Step
 - Validated 检查配置和权限，Tested 检查评测结果。两项各自的通过条件写清楚，才允许进入下一态
 - 作者侧需要调试台、工具模拟，以及两个定义版本之间的差异
+
+## Agent 能力体系
+回答：Agent 可以使用哪些能力，以及如何扩展？
+- Models：模型选择、统一接口、路由优先级、Fallback链
+- Tools：注册信息（名称 + 参数 schema + 执行方式 + 权限等级 + 错误分类）、API、数据库、代码执行沙箱、外部系统、错误处理
+- Skills：可复用的任务执行方法与专业能力，指令 + 编排逻辑 + 能力绑定，最小可插拔单元
+- Code Sandbox：代码执行环境
+- Knowledge：文档、业务数据、RAG、知识图谱
+- RAG: 知识库检索，top-k 召回 + 重排序 + 引用溯源
+- Memory：会话上下文、用户偏好、Session、长期记忆
+- Files：文件上传、读取、生成、版本管理
+- MCP / Integrations：外部工具协议和业务系统集成
+- Orchestration / Workflow：编排与协作
+- Scheduler & Channels：调度与通知
+- Artifactory: 轻应用搭建，生成→ 验证→ 发布→ 嵌入
+
+一句话总结能力体系的设计逻辑：输入侧 4 个（Models/Tools/Skills/Code Sandbox）→ 理解与记忆 3 个（Knowledge/RAG/Memory）→ 外部接入 2 个（MCP/Media）→ 输出侧 3 个（Artifactory/Files/Channels）→ 编排与触发横向贯穿（Orchestration/Scheduler）
 
 ### 执行语义
 回答：恢复和重试时，副作用如何只发生一次？
@@ -59,18 +116,6 @@
 - 检查点记到模型轮次、单次工具调用，还是工作流节点
 - 执行循环放在进程内，还是交给可恢复的工作流引擎
 - 多步骤中一步失败时，已成功的副作用是补偿、保留，还是交给人工
-
-## Agent 能力体系
-回答：Agent 可以使用哪些能力，以及如何扩展？
-- Models：模型选择、路由、Fallback
-- Tools：API、数据库、代码执行、外部系统
-- Skills：可复用的任务执行方法与专业能力
-- Knowledge：文档、业务数据、RAG、知识图谱
-- Memory：会话上下文、用户偏好、长期记忆
-- Files：文件上传、读取、生成、版本管理
-- MCP / Integrations：外部工具协议和业务系统集成
-
-代码执行从通用 Tool 描述里拆出来，单独回答网络出站、文件系统、密钥注入、资源上限，以及产物如何交回文件工作区。
 
 ## 上下文组装
 回答：每一轮送进模型的内容如何拼出来，什么不能进去？
@@ -89,370 +134,434 @@
 - 人工确认、补充信息、任务中断和继续。停下来和继续的规则见人机协同，界面负责展示状态并收集补充信息
 - Agent 工作台、模板、应用入口
 
-## 人机协同
-回答：Agent 何时停下来，停下来时冻结什么，人如何让它继续？
-- 审批挂在工具、数据等级，还是这一次 Run 的策略上
-- 等待人工时冻结哪些状态。人补充的信息如何写回下一轮上下文
-- 审批超时是拒绝、升级，还是执行默认动作
-- 确认、补充、中断、继续共用运行状态机里的 waiting_human，不在界面、运行时、治理里各写一套规则
 
-## 治理与安全
-回答：Agent 能做什么、谁可以让它做、出了问题如何追溯？
-- 用户、组织、租户与 RBAC / ABAC 权限
-- Agent、Tools、Knowledge 的授权范围
-- 密钥、凭证与敏感数据管理
-- 沙箱、网络隔离。资源配额的账本归成本与配额
-- 高风险操作审批与执行策略
-- Prompt Injection、越权访问、数据泄露防护
-- 操作审计、合规与数据保留策略。审计记录谁在何时授权了什么；Trace 归可观测性，用来排障和回放
+## 主要功能点
 
-### 身份与委托
-回答：工具调用时代谁行动，审计记谁？
-- 调工具时使用用户凭证、Agent 服务身份，还是两者同时传递
-- 审计主体写成用户、Agent 版本，还是「某用户授权某 Agent」
-- 下游系统能区分这次调用不是人在界面上直接操作
+- Agent 搭建、配套的 Skills / Tools Hub 的管理
+- Agent Chat / Multi Agent 的 runtime，会话/Memory/缓存/文件等配合的优化
+- RAG 及知识库的搭建
+- 定时任务的创建和运行
+- Workflow 中关于 DAG flow 的引擎编辑、测试、正式运行
+- 基于 Vibe Coding Agent 的 Artifactory 
+整体任务的拆分 → 项目文件目录的形成 → 自动部署 流程实现
+- 模块化可插拔机制
+基于 registry.py 的注释
+模块间禁止互相 import
 
-### 数据生命周期
-回答：数据保存多久，删除时同时清掉哪些存储？
-- 删除用户或租户时，会话、文件、向量、记忆、日志分别如何处理
-- 对话能否用于改进模型
-- 备份的恢复点目标写在平台运维。删除和备份使用同一份保留期限
 
-## 评估、运维与持续优化
-回答：如何判断 Agent 是否可靠，出了问题如何定位？
-- 运行日志、Trace、模型请求与工具调用记录
-- 任务成功率、执行时长、Token 成本
-- 自动化评测集、回归测试、质量评分
-- 失败分类、重试策略、异常告警
-- 模型、Prompt、Skill 的版本与效果对比
-- 并发、限流、弹性扩展。配额和预算熔断归成本与配额
-- 用户可见的步骤和运维 Trace 分开。网关、模型、工具使用同一关联 ID，以便回放一次 Run
-- 在线评测和红队门禁后置，等 Tested 的通过条件接上再加
-
-## 成本与配额
-回答：用量记在谁头上，预算打满后怎么处理？
-- 成本按租户、Agent、用户、Task 归因
-- 预算打满时拒绝新 Run，还是降级模型
-- 限流策略、用量账本、告警只有这一处写入。平台运维读取用量做监控，不另记一份账
-
-## 开放平台与生态集成
-回答：Agent 如何被开发、复用、集成到其他系统？
-- 对外 API、SDK、Webhook、事件通知
-- 外部系统创建会话、提交任务、获取结果
-- Agent、Skill、Tool 的注册、发现与复用
-- 版本发布、环境隔离、配置管理
-- 工作流编排。多 Agent 协作的计划和消息归本节对应的工作流模块
-- 扩展机制、插件机制、开发者文档
-
-### 触发与渠道
-回答：除了人打开对话，任务还可以从哪里来？
-- 定时、入站 Webhook、业务事件可以在没有聊天会话时创建 Task
-- Web、API、IM 是同一 Session 模型的不同入口，还是各自一套会话
-
-### 环境晋升
-回答：一个版本如何从开发进入生产？
-- 定义版本归 Agent Registry。发布记录表示某版本进入某环境
-- 开发、预发、生产之间，哪些配置可以晋升
-- 密钥和工具端点按环境分开，不写进定义版本
-
-### 后置项
-共享范围、依赖锁定、数据驻留和独享运行时后置。有第二个使用方之后，再定组织内共享、公开市场，以及 Skill 所依赖的 Tool 版本如何锁定。
-
-## 已经确定的边界
-- Skill 只描述方法。实际动作由 Tool 和权限系统控制，技能发布不附带高权限
-- 模型服务提供统一调用接口。特定模型的协议留在适配器里，Agent 定义只选择模型策略
-- 长期记忆带来源、作用域和生命周期。历史消息不整段永久注入 Prompt
-- 文件能否访问由归属和权限决定。前端或沙箱传来的路径不作为授权依据
-
-# 总体技术架构图
-
-### 应用与交互层
-
-Agent Workspace · Chat UI · Task UI · Admin Console · SDK
-
-界面展示运行状态和步骤，并收集人工补充。审批规则和冻结范围由人机协同与 Runtime 决定。
-
-### 开放接入层
-
-API Gateway · REST / Streaming · Webhook · Authentication · Schedule
-
-人打开对话、外部 API、定时任务、入站 Webhook 都在这一层变成 Task。没有会话时，Task 仍然可以独立存在。
-
-### 平台核心层
-
-- Agent Registry/Definition
-注册、配置、版本
-
-  - Draft · 草稿
-  - Validated · 配置与权限校验
-  - Tested · 测试与评估
-  - Published · 已发布版本
-  - Active · 可接受新任务
-
-  定义版本在这里。某版本进入某环境写成发布记录。Validated 和 Tested 的通过条件是进入下一态的门禁。
-
-- Agent Runtime
-执行、状态、恢复
-
-  - 加载指定版本的 Agent 定义。
-  - 按上下文组装规则拼装指令、技能、工具说明、记忆、检索、文件和历史。
-  - 调用模型并解析输出。
-  - 判断是否需要调用 Tool、检索 Knowledge 或执行 Skill。
-  - 管理执行步骤、状态变化和循环终止条件。
-  - 处理超时、错误、取消、重试和人工确认。
-  - 持久化执行事件，支持任务恢复和运行追踪。
-  - 运行状态独立于定义状态：queued、running、waiting_tool、waiting_human、succeeded、failed、cancelled、timed_out。
-  - 恢复时按执行语义使用检查点和幂等键，避免工具副作用重复发生。
-
-- Session & Task
-会话、任务、事件
-
-  Session 承载对话。Task 是一次要完成的工作，可以来自会话，也可以来自定时和事件。Run 是 Task 的一次执行，Step 和 Event 记录这次执行的过程和事实。
-
-- Orchestration
-计划、工作流、协作
-
-  多步骤的依赖、失败后的补偿，以及 Agent 之间的消息，归这里。单个 Agent 的执行循环仍在 Runtime。
-
-### 能力与资源层 - Capability Services
-
-- Models — 模型服务，推理与生成
-模型 Provider、模型清单、调用适配器、路由、Fallback、限流、计费与用量统计。模型服务负责统一调用接口，不应把特定模型的业务逻辑散落到所有 Agent 中。用量写入成本与配额。
-
-- Tools — 工具，执行动作
-具有明确输入、输出和副作用的可调用操作，例如查询订单、读取生产数据、创建工单、更新业务系统。工具必须具备参数校验、授权、超时、审计和幂等键。
-
-- Sandbox — 代码执行隔离
-网络出站、文件系统、密钥注入、CPU、内存和时间上限。产物交回文件工作区，访问仍走文件归属和权限。
-
-- Skills — 技能，描述方法
-描述如何完成一类任务的可复用方法，可能包含操作说明、步骤、参考文件和可选工具。Skill 不应天然拥有高权限；实际动作仍由 Tools 和权限系统控制。
-
-- Knowledge — 知识，提供事实依据
-管理知识源、文档解析、切分、索引、检索、引用、更新和访问权限。可逐步扩展至向量检索、结构化 SQL 检索和知识图谱。
-
-- Memory — 记忆，保存需要跨步骤或跨会话保留的状态
-管理短期会话上下文、跨会话的长期记忆、写入策略、检索和删除。长期记忆需要有来源、作用域和生命周期，不能把所有历史消息无差别地永久注入 Prompt。
-
-- Files — 文件工作区
-文件上传、下载、预览、生成、版本、归属和访问控制。文件可以属于会话、任务或项目空间，但不能只靠前端传来的路径来决定访问权限。
-
-### 数据与基础设施层
-
-SQL / Object Storage / Vector & Graph Store / Queue / Cache
-
-删除用户或租户时，这几类存储一起进入数据生命周期，按同一保留期限清理。
-
-### 横向平台治理
-
-Identity & Permission · Delegation · Security · Audit · Observability · Evaluation · Cost & Quota
-
-身份与委托决定工具调用使用谁的凭证。审计归治理。Trace 和运行回放归可观测性。限流、用量和预算熔断归成本与配额。
-
-# 模块清单
-
-| 一级模块 | 核心子模块 | 需要回答的问题 |
-| --- | --- | --- |
-| Agent 管理 | 创建、配置、发布、版本、模板、调试台、版本差异、发布门禁 | 如何定义和管理 Agent？ |
-| Agent Runtime | 执行循环、运行状态机、检查点、幂等、异常恢复 | 如何可靠地执行任务？ |
-| 上下文组装 | 拼装顺序、窗口预算、结果压缩、注入边界 | 每一轮送进模型的是什么？ |
-| 人机协同 | 审批挂载点、状态冻结、超时、恢复 | Agent 何时必须停下来？ |
-| 模型管理 | Provider、模型路由、参数、Fallback | 如何管理不同模型？ |
-| Tool 管理 | 注册、参数 Schema、授权、调用、幂等、结果 | 如何安全调用外部能力？ |
-| 沙箱 | 出站、文件系统、密钥注入、资源上限、产物回传 | 代码执行如何隔离？ |
-| Skill 管理 | 定义、组合、复用、版本、测试 | 如何沉淀可复用的方法？ |
-| Knowledge 管理 | 数据源、解析、索引、检索、更新 | Agent 如何获得可靠的领域知识？ |
-| Memory 管理 | 短期上下文、长期记忆、检索、清理 | 哪些信息需要跨会话保留？ |
-| 会话与任务 | Session、Message、Task、Run、Step、Event | 如何跟踪完整执行过程？ |
-| 文件工作区 | 上传、读写、生成、存储、归属、权限 | Agent 如何处理工作文件？ |
-| 工作流与协作 | DAG、任务依赖、失败补偿、Agent 间通信 | 如何执行多步骤或多 Agent 任务？ |
-| 用户与权限 | 用户、组织、角色、资源权限、委托链、审计 | 谁可以访问什么，Agent 代表谁行动？ |
-| 成本与配额 | 归因、预算、限流、熔断 | 用量记在谁头上，打满后怎么办？ |
-| API 与集成 | REST、流式响应、Webhook、定时、SDK | 外部系统如何接入，任务从哪里来？ |
-| 可观测性 | 日志、Trace、指标、关联 ID、运行回放 | 如何排障并复现一次运行？ |
-| 平台运维 | 环境晋升、配置、部署、监控、备份 | 如何保证长期稳定运行？ |
-
-归属约定：
-
-- 多 Agent 的计划和 Agent 之间的消息归工作流与协作。
-- 审计归用户与权限，记录授权事实。Trace 和回放归可观测性。
-- 限流、用量账本和预算熔断归成本与配额。
-- 定义版本归 Agent 管理。发布记录表示该版本进入哪个环境。环境配置和密钥按环境分开。
 
 ## 项目目录
+```
+agent-platform/
+├── apps/
+│   └── web/                        # [TS] React + Vite + AntD 控制台
+│       └── src/views/              # 视图（与后端服务一一对应）
+│           ├── chat/               # 对话工作台
+│           ├── schedulers/         # 定时/日历
+│           ├── agents/             # agents / skills / tools
+│           ├── workflows/          # DAG Graph Editor
+│           ├── artifacts/          # 轻应用/制品
+│           ├── knowledges/         # 知识 + RAG
+│           ├── resources/          # 工作区资源
+│           │   ├── docs/           # 文件池
+│           │   ├── connections/    # 数据池
+│           │   └── models/         # 自定义模型接入配置
+│           └── configs/            # 平台设置
+│               ├── users/          # 用户及权限管理
+│               ├── providers/      # 平台级模型提供商
+│               └── system/         # 系统设置
+├── services/
+│   └── api/                        # [Py·FastAPI] 统一 API（monolith 聚合模式，可拆）
+│   │   ├── main.py                 # 启动：读 ENABLED_MODULES → importlib 动态加载注册
+│   │   ├── registry.py             # ★模块注册表（注释一行 = 屏蔽一块服务）
+│   │   └── modules/                # 各业务模块（独立 router + models + 迁移 + 事件）
+│   │       ├── identity/           # auth (login/token) + users + roles
+│   │       ├── logs/               # 系统级日志
+│   │       ├── files/              # 文件服务 upload(single/multi/chunk)/delete
+│   │       ├── models/      # LLM 路由 + llm-harness（DeepSeek）+ 用户密钥/平台 provider
+│   │       ├── connections/        # 数据源/连接器（数据库/API/MCP）create/test/credential
+│   │       ├── memory/             # 记忆分层 expire
+│   │       ├── runtime/            # 单 Agent 执行 run/session/task/step/human
+│   │       ├── knowledge/          # RAG + Knowledge（LangChain + Qdrant）chunk/source
+│   │       ├── hub/                # Agent/Skill/Tool 定义 (created/publish/active)
+│   │       ├── workflow/           # DAG 编排引擎 run/node/trigger
+│   │       ├── scheduler/          # ScheduleTask + Calendar create/trigger/request
+│   │       ├── artifacts/          # 管理侧 Artifactory 制品库 create/publish/deploy/compose
+│   │       ├── vibe/               # 生产侧 Factory Vibe Coding 生成循环（Workspace+Git）
+│   │       └── sandbox/            # 代码沙箱（默认独立部署，安全边界）execution
+│   └── deepseek-harness/           # 基于官方开源的 Chat 交互界面
+│
+├── packages/
+│   ├── contracts/                  # OpenAPI 契约（双端生成 TS / pydantic）
+│   ├── events/                     # 事件定义（JSON Schema）+ Redis Streams 客户端
+│   ├── sdk-py/                     # Python 服务间调用 SDK
+│   ├── db/                         # 迁移 + 通用仓储（Alembic / Prisma）
+│   └── ui/                         # 前端共享组件
+│
+├── infrastructure/
+│   ├── docker-compose.yml          # 一键起全链路
+│   ├── postgres/  redis/  qdrant/  minio/
+│   ├── migrations/
+│   └── observability/              # OTel + Prometheus + Grafana + 日志
+│
+├── docs/                           # 架构文档
+│
+├── package.json
+└── README.md
+```
 
-前端应用：用户在哪里操作。工作台、对话、任务、管理台。
-平台控制面：Agent 定义、版本、发布门禁、权限、审批策略。不执行任务。
-执行面：Runtime、工作流、沙箱。加载版本、组装上下文、调用模型与工具、写 Event。
-数据与资源层：模型、工具、知识、文件、记忆，以及 SQL、对象存储、向量、队列。
-接入与触发：API、定时、入站 Webhook。它们创建 Task，Task 可以不依附会话。
-工程基础设施：测试、部署、监控、升级。开发、预发、生产的配置和密钥按环境分开。
+## 语言与框架选型
 
-## 业务模块收口
-回答：文档问答、任务、汇总、报表、助理、微信员工、报销，哪些是能力，哪些只是入口？
+Frontend: React + TypeScript
 
-这十项不是十套系统。个人助理是员工侧的默认 Agent。虚拟微信员工是它在企业微信上的渠道和人设。这里的个人助理是办公入口，和「产品取舍」里推迟的消费级个人助手不是同一件事。
+| 技术             | 作用           | 推荐说明                            |
+| --------------- | ------------   | ------------------------------- |
+| React + Vite    | 前端基础框架     | SPA 应用、模块化页面                    |
+| TypeScript      | 强类型语言        | 统一前后端数据类型                       |
+| Ant Design      | UI 组件库       | 企业级后台管理界面                       |
+| Tailwind CSS    | 样式库          | 原子化 CSS、灵活布局                    |
+| Zustand         | 状态管理         | 全局状态、用户状态、UI 状态                 |
+| TanStack Query  | 服务端状态管理      | API 请求、缓存、数据同步                  |
+| Axios           | HTTP 通讯      | REST API 请求、拦截器                 |
+| WebSocket / SSE | 实时通讯         | Agent 对话、Token Streaming、任务状态推送 |
+| @xyflow/react   | Graph Editor | Workflow DAG、Agent Flow 编排      |
+| Monaco Editor   | 代码与文本编辑器     | Prompt、代码、JSON、YAML 编辑          |
+| xlsx            | Excel 文件处理   | Excel 导入、导出、解析                  |
+| ECharts         | 数据可视化        | Dashboard、执行统计、运行监控             |
+| @file-viewer    | 文件预览         | PDF、Word、Excel、Markdown、图片等     |
+| Excalidraw      | 无限画布         | 架构图、流程草图、自由绘图                   |
+| React Router    | 路由管理         | 页面路由、模块路由、权限控制                  |
+| React Hook Form | 表单管理         | 复杂表单、动态配置表单                     |
+| Zod             | 数据校验         | 前端 Schema 校验、表单验证               |
+| i18next         | 国际化          | 多语言支持                           |
+| Vitest          | 单元测试         | 前端组件和工具函数测试                     |
+| Playwright      | E2E 测试       | 浏览器端自动化测试                       |
 
-### 能力，挂在 Tool、Knowledge、Skill 上
-- 文档问答：Knowledge 管线。解析、切片、索引、检索、引用。回答要能回到原文位置。
-- 已有报表提炼及分析：只读的报表 Tool。查询限制在白名单表、已有报表 API 和调用人的行级权限。报表导出文件可以进知识库，但主路径是查数，不是把截图做 RAG。
-- Chat 报表：上面这个 Tool 的对话入口。和报表提炼共用数据权限，不另做一套分析引擎。
-- 核心关键点推荐：一个 Skill。输入是任务事件和检索结果，输出是排序后的要点。
-- 每日汇总：定时创建的 Task，加上汇总 Skill，结果推回企业微信或邮件。
-- AI 报销：工作流。票据识别、草稿、人工审批、向财务系统幂等提交。有外部写操作，放在第三期。
+Backend: FastAPI + Uvicorn
 
-### 运行与触达，挂在 Task 和渠道上
-- 任务分发：Task 的创建、负责人和状态。来源可以是对话、定时、邮件、企业微信。分发不单独做一套运行时。
-- 智能任务监控：读取 Task、Run、Event。发现超时、失败、待审批后，经企业微信或邮件提醒。监控作业本身也是定时 Task。
+ 技术                               | 作用          | 推荐说明                           |
+| -------------------------------- | ----------- | ------------------------------ |
+| Python                           | 后端开发语言      | 统一业务 CRUD、AI Runtime、Workers   |
+| FastAPI                          | Web API 框架  | REST API、异步接口、依赖注入             |
+| Uvicorn                          | ASGI Server | FastAPI 运行服务器                  |
+| Pydantic v2                      | 数据校验        | Request / Response Schema、配置校验 |
+| SQLAlchemy 2.0                   | ORM         | 数据库模型、CRUD、事务管理                |
+| Alembic                          | 数据库迁移       | Schema Version、Migration       |
+| HTTPX                            | HTTP Client | 外部 API、第三方服务调用                 |
+| Dependency Injector / FastAPI DI | 依赖注入        | 模块解耦、Provider 装配               |
+| PyYAML                           | YAML 解析     | Plugin Manifest、系统配置           |
+| Pytest                           | 单元与集成测试     | API、Service、Plugin 测试          |
+| Ruff                             | 代码规范        | Lint、Format                    |
+| Mypy                             | 静态类型检查      | Python 类型安全                    |
 
-### 入口，挂在同一个 Agent 定义上
-- 个人助理：指令、技能目录、可用工具和连接器都挂在这一个定义上。问答、汇总、推荐是它调用的能力。
-- 虚拟微信员工：企业微信自建应用上的同一定义。对内用员工身份，还是用公共账号，要先选定。不使用个人微信协议。
+3. AI Runtime：LangChain + LangGraph / DeepSeek Harness / Pi Agent
 
-### 分期
-- 第一期：个人助理、企业微信入口、文档问答、任务分发、任务监控、每日汇总。主指标用任务完成率，同时看人工介入率。
-- 第二期：报表 Tool、Chat 报表、关键点推荐。
-- 第三期：邮件渠道、AI 报销。报销上线后再加提交成功率和退回率。
+用于构建统一的 Agent Runtime，支持单 Agent、多 Agent、工具调用、状态管理、会话管理及执行追踪。
 
-## 实现架构
-回答：这些场景怎样走同一条任务路径？
+| 技术                        | 作用                  | 推荐说明                                 |
+| ------------------------- | ------------------- | ------------------------------------ |
+| LangChain                 | Agent 基础框架          | Model、Prompt、Tools、Structured Output |
+| LangGraph                 | Agent 工作流引擎         | State Graph、条件路由、循环执行、Checkpoint     |
+| DeepSeek Harness          | Agent 执行框架          | 可作为独立 Runtime / Harness 方案进行集成评估     |
+| Pi Agent                  | Agent Runtime       | 可作为另一种 Agent 实现或执行后端                 |
+| LiteLLM                   | LLM Provider 统一接入   | OpenAI、DeepSeek、Anthropic、本地模型等      |
+| Pydantic                  | Structured Output   | Agent 输出结构化数据                        |
+| LangSmith / OpenTelemetry | Agent Observability | Trace、Token、耗时、Tool Call 追踪          |
+| LangGraph Checkpointer    | 执行状态持久化             | Thread、Checkpoint、恢复执行               |
 
-企业微信、邮件和 Web 都在接入层变成 Task。有对话时挂上 Session；定时汇总和监控扫描可以没有会话。Runtime 加载个人助理的指定版本，按上下文规则拼装指令、技能目录、检索结果和历史，再调用工具。工具结果写成 Event，推回原来的渠道。
+### Runtime 功能范围
 
-报销在写入财务系统之前进入 waiting_human。监控和每日汇总由调度器创建 Task，进入同一个 Runtime，不另写汇总程序或监控程序。
+| 功能                | 作用                                         |
+| ----------------- | ------------------------------------------ |
+| Chat              | 单 Agent 对话、流式输出、消息管理                       |
+| Multi-Agent       | 多 Agent 协作、任务委派、结果汇总                       |
+| Agent State       | Agent 运行状态管理                               |
+| Runtime Context   | 当前执行上下文、用户、权限、环境                           |
+| Memory            | 短期记忆、长期记忆                                  |
+| Checkpointer      | 中断、恢复、状态持久化                                |
+| Thread / Session  | 对话线程与会话管理                                  |
+| Tools Runtime     | Tool 加载、调用、权限控制                            |
+| Skills Runtime    | Skill 加载、解析、注入                             |
+| Middleware        | Before Model、After Model、Wrap Model 等执行中间件 |
+| Streaming         | Token、Tool Call、Agent Event 实时推送           |
+| Human-in-the-loop | 人工审批、确认、中断与恢复                              |
+| Execution Trace   | 模型调用、工具调用、节点执行记录                           |
 
-第一期只有一个 Agent 执行循环。多个专家并行、自由多 Agent 仍后置。子任务如果需要，用独立上下文做检索或查数，只把摘要交还主任务。
+4. Scheduler：任务调度
 
-- 接入层：企业微信回调、Web 流式对话。邮件入站放到第三期。
-- 控制面：Agent 定义、Skill、知识源、审批策略、渠道凭证。不执行任务。
-- 执行面：一个带检查点的 Agent 循环，外加创建 Task 的调度器。
-- 数据：Postgres 是任务、事件、权限和向量的事实来源。对象存储放原文、解析结果、票据和生成文件。
-- 并行：同一用户的多个 Task 可以同时跑。会改文件或提交单据的 Run 使用各自的工作副本和幂等键。
+负责定时任务、周期任务、事件触发任务和后台任务执行。
 
-## 技术选型
-回答：第一期用什么实现，哪些先不引入？
+| 技术          | 作用         | 推荐说明                       |
+| ----------- | ---------- | -------------------------- |
+| APScheduler | 定时任务调度     | Cron、Interval、Date Trigger |
+| ARQ         | 异步任务队列     | 基于 Redis 的 Python Worker   |
+| Redis       | 队列与锁       | 任务分发、分布式锁                  |
+| Croniter    | Cron 表达式解析 | 自定义周期任务                    |
+| Webhook     | 外部事件触发     | 接收外部系统任务触发请求               |
 
-选型按「够把第一期跑通，并且和上面的对象模型一致」来定。供应商可以换，对象和边界不跟着换。
+需要区分：
 
-- API 与 Worker：Python 3.12、FastAPI。检索、文档解析和模型 SDK 集中在 Python。API 负责接入和查询，Worker 负责执行循环。先同仓库部署，队列把两边分开。
-- Agent 循环：LangGraph，检查点写入 Postgres。用 thread 对应 Session 或独立 Task，用 interrupt 实现 waiting_human。不自写一套不可恢复的循环。
-- 模型：OpenAI 兼容接口。默认接一个国产对话模型，配置里可切换。嵌入模型和对话模型分开，嵌入维度固定；更换嵌入模型要重建索引。
-- 数据库：PostgreSQL，向量用 pgvector。任务、审计和切片放在一起，备份和删除走同一套保留期限。调用量和延迟上来之后，再拆专用向量库。
-- 对象存储：S3 兼容接口。开发用 MinIO，生产用云对象存储。文件权限看归属，不看调用方传来的路径。
-- 队列与定时：Redis 做队列。调度器到点向 Task 表插入汇总或监控任务。第一期不用独立的工作流集群。
-- 文档解析：PDF 和 Office 走文档解析器，扫描件走 OCR。切片保留原文位置，供引用跳转。
-- 报表：只读账号连接现有数仓或报表 API。Text-to-SQL 限制在白名单 schema。Chat 报表和报表提炼调用同一个 Tool。
-- 企业微信：自建应用。接收消息用回调，主动通知用应用消息。虚拟员工的人设写在 Agent 指令里，渠道适配器只负责收发和身份映射。
-- 前端：第一期以企业微信为主入口。Web 只做任务列表、引用来源和审批。完整工作台后置。
-- 观测：每次 Run 一个关联 ID，用 OpenTelemetry 导出。Trace 可落到自托管的 Langfuse。审计记录仍写 Postgres。
-- 部署：单区域容器，分为 API、Worker、Postgres、Redis、对象存储。开发、预发、生产的配置和密钥分开。
+- Scheduler：决定任务何时执行。
+- Queue：负责将任务分发给 Worker。
+- Worker：真正执行任务。
+- Workflow Engine：负责任务内部的流程编排。
 
-第一期不引入：多 Agent 编排框架、图数据库、自建代码沙箱、个人微信协议、把报表系统本身重做一遍。报销需要的票据 OCR 和财务写入留到第三期，接口先留在 Tool 登记表里。
+5. Workflow：DAG Workflow Engine
 
-## 成熟产品分析
-回答：成熟产品里，哪些做法值得写进本平台？
+负责用户可视化创建、配置、测试、发布和运行 DAG 工作流。
 
-整理于 2026-10，依据各产品公开文档和同期的行业分类。条目记录稳定做法。价格、预览开关和产品改名不写入。
+| 技术            | 作用                | 推荐说明                  |
+| ------------- | ----------------- | --------------------- |
+| @xyflow/react | Workflow Designer | 前端节点、连线、画布交互          |
+| NetworkX      | DAG 图结构处理         | 拓扑排序、依赖分析、环路检测        |
+| LangGraph     | Agent 节点执行        | 支持带状态的 Agent Workflow |
+| Pydantic      | Node Schema       | 节点输入输出参数校验            |
+| ARQ           | 异步执行              | Workflow Run 分发       |
+| Redis         | 执行状态缓存            | 任务状态、锁、队列             |
+| PostgreSQL    | 工作流持久化            | DAG 定义、版本、执行记录        |
 
-### 品类
-同一份「Agent 能力清单」不能直接横比。先看产品站在哪一层。
+### Workflow 核心能力
 
-- 企业套件中的搭建台：Microsoft Copilot Studio、Salesforce Agentforce、ServiceNow AI Agent Studio。身份、数据和渠道继承自原有套件。
-- 云上的托管运行时：Microsoft Foundry Agent Service、Google Gemini Enterprise / Vertex Agent Runtime、Amazon Bedrock AgentCore、阿里云百炼、百度千帆。厂商托管执行循环，并提供注册、网关和观测。
-- 低代码应用：扣子、Dify。扣子侧重插件、模板和多渠道发布；Dify 侧重知识库管线、多模型和自托管。字节企业侧另有 HiAgent，面向私有化全生命周期。
-- 开发框架：OpenAI Agents SDK、LangGraph、Google ADK、Microsoft Agent Framework。执行循环跑在使用方自己的进程或配套运行时里。身份、审计和发布要另补。
-- 流程自动化中的模型步骤：n8n、Zapier、UiPath。路径事先画好，模型处理其中若干节点。
-- 模型厂商的工作台：OpenAI Workspace Agents、Claude Cowork。面向知识员工的云端或桌面入口。
-- 桌面办公工作台：腾讯 WorkBuddy。用自然语言下任务，交付可验收的文件。专家、技能、连接器分开，执行落在授权文件夹或云端沙箱。
-- 编程 Agent：Cursor、Claude Code、Codex。工作区是代码仓库，交付物是可审查的 diff。审批、沙箱、网络分成三道控制。
-- 对话与客服：Cognigy、Kore.ai。衡量一次对话能否结束，以及何时转人工。
+- DAG Designer：可视化流程编辑。
+- Node Registry：节点类型注册。
+- Node Executor：节点执行器。
+- Edge Resolver：节点依赖解析。
+- DAG Validator：环路、参数和依赖检查。
+- Execution Engine：执行引擎。
+- State Manager：运行状态管理。
+- Retry / Timeout：重试、超时控制。
+- Checkpoint：执行中断和恢复。
+- Workflow Version：版本管理。
+- Human Approval：人工审批节点。
 
-### 可借鉴的条目
+6. Webhook：外部系统集成
 
-产品边界
+负责平台与企业其他系统之间的双向通信。
 
-- 先选定工作已经发生的系统，再做 Agent。Copilot Studio 站在 Microsoft 365，Agentforce 站在 Salesforce，百炼延伸到钉钉，千帆多落在知识密集和政务。第一版要写出身份、数据和渠道来自哪一个系统。
-- 业务人员搭建和工程师搭建是两条作者路径，发布进入同一个注册表。Copilot Studio 用画布；Foundry、ADK、Agents SDK 用代码。ADK 同时提供 YAML 配置。
-- 执行形态分成三种，产品会并列提供，默认搭建方式只强调一种。对话循环由模型决定下一步，OpenAI Agents SDK 的 Agent 与 Runner 是这种。工作流把节点事先连好，Dify、扣子、千帆 DAG、n8n 是这种。协调者把任务分给工作者，千帆把这一种单独做成编排模式，并预置网页探索、代码、报告等子 Agent。
-- Foundry 把 Prompt agent、Workflow agent、Hosted agent 分成三种运行形态。截至 2026-05，第一种已正式提供，后两种仍在预览。长任务容器和自由多 Agent 可以晚于第一种。
+| 技术         | 作用                 | 推荐说明          |
+| ---------- | ------------------ | ------------- |
+| FastAPI    | Webhook API        | 接收外部 HTTP 事件  |
+| HTTPX      | HTTP Client        | 主动调用外部系统      |
+| Pydantic   | Payload Validation | 请求数据校验        |
+| Redis      | Event Queue        | 异步事件分发        |
+| HMAC / JWT | 请求认证               | 签名验证、Token 验证 |
+| Tenacity   | Retry              | 失败重试、退避策略     |
 
-定义、版本与发布
+### Webhook 核心能力
 
-- 草稿和已发布版本分开。OpenAI 的 Workspace Agents 提供快照、发布前预览、发布权限和版本历史。Kore.ai、Cognigy、UiPath、SAP Joule Studio 都把开发、预发、生产分成可晋升的环境。
-- 注册表决定一个 Agent 能否部署，以及它能调用哪些工具。Google Agent Registry、Microsoft 365 Agent Registry 都把这件事从 Agent 正文里拆出去。
-- 调试先于发布。ADK 提供本地 Web、命令行和评测命令；Foundry 在门户里提供 playground。Copilot Studio 的测试留在门户内，执行循环不能拿到厂商环境外面跑。
+- Webhook Endpoint 管理。
+- Event Subscription。
+- Event Publisher。
+- Event Consumer。
+- Signature Verification。
+- Retry / Dead Letter Queue。
+- Idempotency。
+- Delivery Logs。
 
-会话、运行与记忆
+建议采用统一事件模型，使 Agent、Workflow、Scheduler 都可以发布或消费事件。
 
-- 一次对话是 thread 或 session，其中一次执行是 run。Foundry 的对象就是 Threads 与 Runs。恢复时用同一个 thread 取回状态。
-- 短期状态和长期记忆分两个存储。LangGraph 用 checkpointer 按 thread 保存步骤，用 store 跨 thread 保存偏好和事实。Google Memory Bank 把跨会话记忆做成独立服务，并与运行时分开计费。Foundry、OpenAI Agents SDK、Copilot Studio 的长期记忆仍要自建。短期 thread 是运行时的一部分，长期记忆可以后置。
-- 等人时先把检查点写下来，再用同一个 thread 恢复。LangGraph 的 interrupt 把暂停载荷交给调用方，恢复值写回该节点。该节点在暂停前的写操作要幂等，因为恢复会从节点开头重跑。
+7. RAG + Knowledge：知识库与检索增强
 
-工具、知识与协议
+负责企业知识库构建、文档处理、向量化、检索和上下文注入。
 
-- 工具分成三类：平台托管工具、业务函数或 OpenAPI、MCP。托管工具常见的是网页搜索、文件检索、代码解释器。OpenAI、Foundry、ADK、Copilot Studio 都按这三类接。
-- MCP 连接工具，A2A 连接 Agent。多家企业平台已经接 MCP；A2A 出现得更晚。工具协议进第一版，Agent 互通协议可以后置。
-- 每个工具声明调用时用谁的身份，并带过滤和审批。OpenAI Agents SDK 对 MCP 提供工具过滤和审批策略。Copilot Studio 的事件触发使用搭建者的凭证，不使用当前聊天用户的凭证。
-- 原型期靠插件市场加快，企业落地靠已有系统的连接器。扣子以内置插件取胜；Copilot Studio 接 Power Platform 连接器，Agentforce 接 Salesforce 数据。第一版优先连接器。
-- 知识是一条管线：文件、解析、切分、索引、引用、权限。Dify 把这条管线做成产品核心。千帆一类落地常走「文件、知识、可审的服务」。回答要能回到原文，引用是发布条件的一部分。
+| 技术                                | 作用           | 推荐说明                            |
+| --------------------------------- | ------------ | ------------------------------- |
+| LangChain                         | RAG 框架       | Document Loader、Retriever、Chain |
+| LangGraph                         | RAG Agent 流程 | Query Rewrite、检索、Rerank、生成      |
+| PostgreSQL                        | 元数据存储        | Knowledge Base、Document、Chunk   |
+| pgvector                          | 向量数据库扩展      | Embedding 存储、相似度检索              |
+| MinIO                             | 文件存储         | 原始文档、解析文件                       |
+| Docling                           | 文档解析         | PDF、Word、复杂布局文档                 |
+| PyMuPDF                           | PDF 解析       | PDF 文本和页面提取                     |
+| python-docx                       | Word 解析      | DOCX 文档处理                       |
+| openpyxl                          | Excel 解析     | XLSX 数据提取                       |
+| Unstructured                      | 多格式解析        | 复杂文档的备用解析方案                     |
+| FastEmbed / Sentence Transformers | Embedding    | 文本向量化                           |
+| Reranker Model                    | 重排序          | 提高检索相关性                         |
+| BGE / Qwen Embedding              | Embedding 模型 | 可选择本地或远程模型                      |
 
-身份、渠道与触发
+### Knowledge 核心能力
 
-- 使用人身份和 Agent 自己的工作负载身份同时存在。Foundry 用 Entra，访问下游时可传递用户的 On-Behalf-Of 凭证。Google 为每个 Agent 发 Agent Identity，工具调用经过 Agent Gateway 做策略。OpenAI Agents SDK 只持有模型 API 密钥，使用人认证由接入方自己做。
-- 同一个 Agent 定义发到多个渠道。Copilot Studio 覆盖 Teams、网页、邮件和多种即时通讯。Vertex 与 Agents SDK 只提供 API，渠道由接入方实现。渠道是适配器，不写进 Agent 定义。
-- 定时和外部事件是与聊天并列的入口。Copilot Studio 通过 Power Automate 接 SharePoint、日程等触发。触发出来的运行使用策略里规定的身份。
-- 对内登录和对外匿名链接分开配置。Copilot Studio 既允许 Entra 登录，也允许公开链接不登录。
+- Knowledge Base Management。
+- Data Source Connector。
+- Document Ingestion。
+- Document Parsing。
+- Text Chunking。
+- Embedding Generation。
+- Vector Search。
+- Hybrid Search（Keyword + Vector）。
+- Reranking。
+- Metadata Filtering。
+- Retrieval Evaluation。
+- Knowledge Graph（实体、关系、图谱检索）。
 
-上下文、安全与成本
+建议： 第一阶段 PostgreSQL + pgvector 即可。不要一开始同时部署 Qdrant、Milvus、Elasticsearch。后续如果向量数据规模、检索性能或多模态检索需求显著增加，再将向量存储抽象为可替换 Provider。
 
-- 指令、工具、护栏是 Agent 定义上的并列字段。OpenAI Agents SDK 的 Agent 直接包含 instructions、tools、mcp_servers、guardrails。护栏不靠把禁止事项继续堆进指令。
-- 模型输入输出有独立的拦截策略。千帆支持对输入输出配置安全策略和自定义干预。写 Trace 时要能脱敏，LangSmith 支持在上报前做匿名化。
-- 账单按 Run 拆开：模型 Token、工具调用、运行时长或事件数、沙箱计算、记忆的存储与检索。Google 对运行时的计算、事件和 Memory Bank 分开计价。只记 Token 会漏掉会话和沙箱。
-- 对外报价可以用对话次数或积分包装，内部账本仍按 Run 记录。Agentforce、Copilot Studio 面向客户用对话或积分，底层仍对应一次次执行。
+8. Artifact Factory / Vibe Coding
 
-观测、评测与审计
+负责通过自然语言生成项目、修改文件、执行测试、构建和自动部署。
 
-- 每次运行默认留下 Trace，盖住模型调用、工具、交接和护栏。OpenAI 的 Runner 自动包一层 trace。LangSmith 同时提供原始 Trace，以及按对话阅读的 Trajectory。用户看到步骤，运维看到 Trace，两边用同一关联 ID。
-- 发布前用数据集重放，线上 Trace 可以回流成新的评测样本。ADK 提供 adk eval。控制面把模拟、评测、观测分成相邻的能力，而不是同一次运行的日志。
-- 审计记录谁发布、谁改了权限。Trace 记录这一次 Run 做了什么。千帆把控制台操作送云审计，把运行日志送日志服务。
+| 技术                          | 作用                         | 推荐说明                   |
+| --------------------------- | -------------------------- | ---------------------- |
+| LangGraph                   | Coding Agent Orchestration | 任务拆解、代码生成、迭代修复         |
+| LangChain                   | LLM / Tools                | 模型调用、工具集成              |
+| DeepSeek Harness / Pi Agent | Coding Agent Runtime       | 可作为可替换的执行后端            |
+| Workspace                   | 项目工作空间                     | 每个任务独立文件目录             |
+| GitPython                   | Git 操作                     | Commit、Branch、Diff、Tag |
+| Git                         | 版本控制                       | 代码版本、历史记录、回滚           |
+| Docker                      | 隔离执行                       | 项目构建、依赖安装、测试           |
+| Docker SDK for Python       | 容器管理                       | 容器创建、执行、销毁             |
+| HTTPX                       | 外部服务通信                     | Git 服务、部署平台 API        |
+| Monaco Editor               | 代码编辑                       | 在线代码查看与修改              |
+| xterm.js                    | Terminal UI                | 前端终端输出                 |
+| Playwright                  | 自动化测试                      | Web 项目构建后的浏览器测试        |
+| MinIO                       | 项目归档                       | 代码包、构建产物、文件归档          |
 
-部署与隔离
+### Artifact Factory 核心流程
 
-- 作者体验可以一样，交付分成公有云和自托管。Dify、Coze Studio、n8n 把自托管作为购买理由。云上扣子和开源 Coze Studio 的功能范围不同，要分开核对。
-- 代码解释器和计算机操作是托管工具，跑在独立沙箱里。OpenAI、Foundry、ADK 都把它们从业务 Tool 里拆出。本机直接改文件、跑命令的做法见下面两组。
+```
+User Requirement
+       |
+       v
+Task Decomposition
+       |
+       v
+Project Planning
+       |
+       v
+Workspace Initialization
+       |
+       v
+Code Generation
+       |
+       v
+Dependency Installation
+       |
+       v
+Build / Test / Debug
+       |
+       v
+Git Version Control
+       |
+       v
+Preview / Deployment
+       |
+       v
+Artifact Management
+```
 
-办公工作台（WorkBuddy）
+建议 Workspace、Coding Agent、Sandbox 分离：
 
-- 主对象是任务。侧边栏同时挂着多个任务；云端任务在客户端关闭后继续跑。界面会话和 Run 分开。
-- 交付物是可验收的文件，例如文档、表格、演示和报告。对话用来下任务和看过程。
-- 专家、Skill、连接器分成三层。专家携带领域方法和角色，自身不拿系统权限。Skill 是可执行的方法。连接器和 MCP 在用户授权后才访问外部系统。专家团把多个专家组织进同一次任务。
-- 连接器在真正用到时才请求授权。任务碰到腾讯文档、TAPD 等尚未连接的服务时，出现连接卡片；授权完成后继续当前任务。
-- 项目是注入单位。成员发起任务时，自动带上项目指令、专家、Skill、连接器和资料。项目配置存在云端，成员共享。个人授权的票据只留在成员本机；协作任务里禁用个人连接器，只用公共授权。
-- 能力能不能被这次 Run 看见，取决于它放在哪一端。Web 与客户端的个人 Skill 库互不相通。云端任务只能使用云端个人库里的 Skill，也读不到本机文件。项目级 Skill 在云端统一，两端一致。
-- 工作空间是这次任务的文件夹。默认权限下，工作空间内的普通写入可以直接做；敏感路径、删除、脚本和网络停下来等确认。用户取消这一步后，任务还在，可以改成先出文件清单或预览。
-- 完全放行的范围要写明。WorkBuddy 的完全访问是当前客户端的全局开关，会作用到已有任务和之后新建的任务，而且不跨设备。这种档位只适合隔离目录或虚拟机，用完要关回默认权限。
-- 沙箱按路径、命令前缀、域名分别设允许、询问、拒绝。修改已有文件前做一份备份，同一次轮次里同一文件只备一次。敏感信息在读入和对外动作前检测；允许加密后，上下文里走密文，输出时再还原。
-- 工具管控在调用前拦截，粒度到单个工具或整个 MCP 服务，对当前客户端里的所有 Agent 生效。
-- 定时任务自己带提示词、模型、专家、Skill、连接器、工作空间、权限档和结果推送。触发时沿用登录身份和已经授权的凭证，不另存一套密钥。本地、项目、云端是三种执行位置，云端沙箱碰不到本机文件。
+- Workspace：文件管理。
+- Coding Agent：负责决策和任务编排。
+- Sandbox：负责执行代码。
+- Git：负责版本管理。
+- Deployment：负责部署和发布。
 
-编程 Agent（Cursor、Claude Code、Codex）
+9. Database & Infrastructure
 
-- 工作区是仓库或用户授权的目录，交付物是 diff。用户按文件接受或拒绝。确认点落在改动和命令上。
-- 审批、沙箱、网络是三道独立控制。审批决定要不要先问人：Claude Code 用权限模式，其中 plan 先限制副作用；Codex 用 approval policy，并另有 read-only、workspace-write、danger-full-access 等沙箱档；Cursor 用 Auto-review、Allowlist、Run Everything，并写明 Auto-review 本身不是安全边界。Claude Code 的 Bash 沙箱只管 shell，文件读写工具走另一套权限规则。云端 Agent 跑在单独的机器里，不沿用本机的审批档。
-- 规则和 Skill 只改变模型看到的内容。真正拦住动作的是沙箱、权限规则和 Hook。企业可以把拒绝规则和沙箱要求下发到客户端。
-- Skill 放在仓库的约定目录里，随仓库版本一起走，例如 `.cursor/skills`、`.claude/skills`、`.agents/skills`。提示里先放简短目录，正文在用到时再读入，避免每份技能全文常驻窗口。
-- 子任务用独立上下文做探索或执行命令，只把摘要交还主线程，避免工具输出占满主会话。
-- 并行的 Run 各写隔离的工作副本。编程产品用独立 worktree 或云端机器；办公产品用独立任务文件夹。多个 Run 写同一份文件会互相覆盖。
-- 产品自己的检查点用来回退 Agent 改过的文件，和用户的版本管理不是同一份记录。WorkBuddy 在改文件前做的会话备份属于前一种。
-- 同一次任务可以更换模型。指令、Skill 和权限档留在任务上，不跟着模型走。
+这一部分建议单独列出来，因为它不仅是数据库选型，还涉及缓存、消息队列、文件存储、隔离执行和系统可观测性。
 
-### 对本文各节的用法
+| 技术             | 作用      | 推荐说明               |
+| -------------- | ------- | ------------------ |
+| PostgreSQL     | 关系型数据库  | 核心业务数据             |
+| pgvector       | 向量检索    | RAG Embedding      |
+| Redis          | 缓存与消息队列 | Cache、Queue、Lock   |
+| MinIO          | 对象存储    | 文件、文档、Artifact     |
+| Alembic        | 数据库迁移   | Schema Version     |
+| SQLAlchemy 2.0 | ORM     | 数据访问层              |
+| ARQ            | 后台任务    | 异步 Worker          |
+| Redis Streams  | 事件总线    | 模块间事件传递起步方案        |
+| Docker         | 容器化     | 服务部署和隔离执行          |
+| Docker Compose | 部署编排    | 开发及初期生产部署          |
+| Git            | 版本管理    | Artifact、Plugin 版本 |
+| OpenTelemetry  | 可观测性    | Trace、Metrics、Logs |
+| Prometheus     | 监控指标    | 服务与运行指标            |
+| Grafana        | 可视化监控   | Dashboard          |
+| Loki           | 日志聚合    | 集中化日志              |
+| Pytest         | 后端测试    | 单元、集成测试            |
 
-- 产品取舍先写品类和所继承的系统，再写用户与场景。
-- 第一版的执行形态在对话循环和工作流里选一种。协调者和自由多 Agent 继续放在工作流的后置范围。
-- 短期 thread、检查点、幂等恢复写入运行时。长期记忆、插件市场、A2A、计算机操作保持后置。
-- 工具按托管、业务 API、MCP 登记，并写明使用谁的凭证。
-- Trace 与审计维持现在的归属。成本账本按 Run 拆 Token、工具和沙箱。
-- 面向办公交付时，按 WorkBuddy 区分任务、工作空间、专家、Skill、连接器。专家不持有凭证。个人凭证不进项目共享配置。
-- 会改文件或跑命令时，审批、沙箱、网络分开写。完全放行只对隔离环境，并写明作用范围是这一次 Run、这个工作空间，还是整台客户端。
-- 云端 Run 看不到本机文件和本机 Skill。并行 Run 使用隔离的工作副本。
+10. Plugin Architecture：可插拔模块架构
+
+这是你提出的一个重要要求，建议独立作为技术选型类别，而不是仅仅把它放在 Backend 里。
+
+| 技术 / 机制               | 作用    | 推荐说明                     |
+| --------------------- | ----- | ------------------------ |
+| Python ABC / Protocol | 接口定义  | 统一模块能力契约                 |
+| Plugin Registry       | 插件注册  | 统一管理插件                   |
+| Plugin Manifest       | 插件元数据 | YAML 配置、依赖、版本            |
+| Dependency Injection  | 依赖注入  | 模块解耦                     |
+| Importlib             | 动态加载  | Python 模块加载              |
+| Pluggy                | 插件机制  | 可评估用于插件 Hook 管理          |
+| Entry Points          | 插件发现  | 支持第三方 Python Package     |
+| Pydantic              | 配置校验  | Plugin Config / Manifest |
+| Semantic Versioning   | 版本管理  | 插件兼容性控制                  |
+| Event Bus             | 事件通信  | 模块间异步协作                  |
+
+### 插件化需要支持
+
+- Module Enable / Disable。
+- Plugin Register / Unregister。
+- Plugin Replace。
+- Plugin Version Management。
+- Dependency Resolution。
+- Lifecycle Management。
+- Health Check。
+- Capability Registry。
+- Custom Plugin SDK。
+
+例如：
+
+```
+Agent Runtime
+    |
+    +-- SkillProvider
+    |       +-- DefaultSkillHub
+    |       +-- EnterpriseSkillHub
+    |
+    +-- ToolProvider
+    |       +-- DefaultToolHub
+    |       +-- MCPToolProvider
+    |
+    +-- WorkflowEngine
+            +-- DefaultWorkflowEngine
+            +-- LangGraphWorkflowEngine
+```
+
+建议第一阶段使用 Python `Protocol / ABC + Plugin Registry + Dependency Injection`，不必为了插件化引入过多第三方框架。Pluggy 更适合 Hook 扩展机制，可以在需要时引入。
+
+11. 最终技术栈汇总
+
+## Recommended Technology Stack
+
+Frontend
+
+React · Vite · TypeScript · Ant Design · Tailwind CSS · Zustand · TanStack Query · React Flow · Monaco Editor · ECharts
+
+Backend
+
+Python · FastAPI · Uvicorn · Pydantic v2 · SQLAlchemy 2.0 · Alembic
+
+AI Runtime
+
+LangChain · LangGraph · LiteLLM · DeepSeek Harness / Pi Agent (可替换 Runtime)
+
+Scheduler & Workflow
+
+APScheduler · ARQ · Redis · NetworkX · React Flow · DAG Engine
+
+RAG & Knowledge
+
+LangChain · Docling · Embedding Models · Reranker · PostgreSQL · pgvector
+
+Artifact Factory
+
+LangGraph · Workspace · Git · Docker · Playwright · Monaco Editor
+
+Database & Infrastructure
+
+PostgreSQL · pgvector · Redis · MinIO · Docker Compose · OpenTelemetry · Prometheus · Grafana
+
+Plugin Architecture
+
+Python Protocol / ABC · Registry · Manifest · Dependency Injection · Importlib · Entry Points
