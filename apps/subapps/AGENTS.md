@@ -10,7 +10,7 @@ Node 22 及以上，启动参数带 `--experimental-sqlite`。
 
 ## 模板选型
 
-新项目从 `apps/template` 复制。先写页面，再用 `+` 加上需要的能力。没写的能力不做。
+新项目从 `apps/subapps/template` 复制。先写页面，再用 `+` 加上需要的能力。没写的能力不做。
 
 ```text
 {appid}：{一句话}
@@ -27,7 +27,7 @@ Node 22 及以上，启动参数带 `--experimental-sqlite`。
 
 ## 项目标准结构
 
-`apps/` 里每个业务目录是主应用的一个子应用。主应用是 `front_react`（门户）和 `master_data/CommonService.WebApi`（托管静态页、登记）。页面挂在 `/apps/{appid}/`，接口由该目录自己的进程提供。
+`apps/subapps/` 里每个目录是一个子应用。门户在 `{project_root}/apps/web`。页面挂在 `/apps/{appid}/`，由 gateway 提供。接口由该子应用自己的进程提供，不进平台 `/api`。
 
 新子应用按下面摆。目录名就是 `{appid}`，小写，和登记时的 id 一致。
 
@@ -63,8 +63,8 @@ apps/{appid}/
 ├── scripts/                 # 打包脚本
 │   └── build-service.mjs    # esbuild → dist/service/server.cjs，并拷 swagger-ui
 ├── .env.development         # pnpm dev 读取。变量 VITE_{APP}_API_ORIGIN
-├── .env.production          # pnpm build:portal:prod 读取
-├── .env.test                # pnpm build:portal:test 读取
+├── .env.test                # pnpm build:test 读取
+├── .env.production          # pnpm build:prod 读取
 ├── index.html
 ├── package.json
 ├── tsconfig.json
@@ -152,25 +152,21 @@ set SSL_PASSPHRASE={passphrase}
 
 ## 打包前端
 
-`pnpm build:portal` 执行 `vite build`，页面只输出到本项目 `dist/web`。
+`pnpm build`、`pnpm build:test`、`pnpm build:prod` 把页面输出到该子应用自己的 `dist/web`。构建不会自动复制。
 
 Vite 配置：
 
 - `base` 为 `/apps/{appid}/`
 - `build.outDir` 为 `dist/web`
 
-手动把 `dist/web` 复制到 `/public/apps/{appid}`，支持挂载使用
+要在门户打开时，把 `dist/web` 里的文件复制到 `{project_root}/apps/web/public/apps/{appid}/`。gateway 的 `/apps/` 读的就是这个 `public` 目录。
 
-前端请求的 API 地址在构建时写死，变量为 `VITE_{APP}_API_ORIGIN`。测试环境写在 `.env.test`，用 `pnpm build:portal:test`（`vite build --mode test`）。这个值必须是该子应用服务的 `https://主机:{port}`。地址变了要重新打包。
+前端请求的 API 地址在构建时写死，变量为 `VITE_{APP}_API_ORIGIN`。测试环境写在 `.env.test`，用 `pnpm build:test`。正式环境写在 `.env.production`，用 `pnpm build:prod`。这个值必须是该子应用服务的 `https://主机:{port}`。地址变了要重新打包。
 
 ## 出现在 Apps Hub
 
-新子应用不改主应用代码，也不进 `BuiltinIds`。`BuiltinIds` 只留给 learning、x-man 这类不能删除的旧应用。
+新子应用不改 `apps/web` 的页面代码。
 
-轻应用走登记：
-
-1. 打开 Apps Hub，点 Register App。`id` 用小写，和目录名一致，例如 `maze`。名称、说明、图标、颜色在这里填。这一步只写 `wwwroot/_versions/registry.json`，不用编译、不用重启 WebApi。
-2. 在子应用目录执行 `pnpm build:portal` 或 `pnpm build:portal:test`。产物留在该子应用的 `dist/web`。需要挂到门户时，手动复制到 `wwwroot/apps/{appid}/`。
-3. 回到 Apps Hub 点 Refresh。有 `index.html` 后标签是 `deployed`，点 `/apps/{appid}` 打开。
-
-Hub 上的 Publish 是另一条发版方式：把含 `index.html` 的 zip 上传并解到同一个目录。
+1. 在门户登记这个应用。`id` 用小写，和 `apps/subapps/{appid}` 的目录名一致。
+2. 在子应用目录执行对应的 `pnpm build`、`build:test` 或 `build:prod`。产物在该子应用的 `dist/web`。
+3. 把 `dist/web` 复制到 `{project_root}/apps/web/public/apps/{appid}/`，从门户打开 `/apps/{appid}`。

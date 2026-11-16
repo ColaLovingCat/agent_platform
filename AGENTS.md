@@ -1,6 +1,8 @@
 # 成熟产品核心维度
 
-## 产品能力全景图
+## 产品设计
+
+### 产品能力全景图
 回答：产品为什么存在、为谁服务、解决什么问题？
 - 产品类型：
 A. 通用型 Agent 问答
@@ -13,7 +15,7 @@ E. 轻应用搭建（Vibe Coding：页面/表单/数据模型）
 - 产品边界：什么由 Agent 自主完成，什么需要人类确认
 - 成熟度目标：Demo、可用产品、企业级生产平台
 
-## 总体架构与运行机制
+### 总体架构与运行机制
 回答：系统由哪些层组成，各层如何协作？
 - 前端交互层：Web UI、工作台、Chatbot 界面
 - 产品编排层: 轻应用搭建、多 Agent 协作、Workflow 流程自动化
@@ -23,7 +25,7 @@ E. 轻应用搭建（Vibe Coding：页面/表单/数据模型）
 - 数据与基础设施层：数据库 DB、对象存储、消息队列 MQ、模型服务
 - 横向治理层：安全、权限、可观测性、审计、成本控制
 
-## 任务路径
+### 任务路径
 ```
 触发器（API / Webhook / 聊天 / 定时）
   → 接入层创建 Task（带 agent 指定、参数、来源、租户、超时）
@@ -47,7 +49,7 @@ E. 轻应用搭建（Vibe Coding：页面/表单/数据模型）
 
 DeepSeek Harness 跑循环。模型调用转给 model-gateway。Tool 执行走 L1–L4。dsh 的会话日志不替代平台 Event。
 
-## 领域模型
+### 领域模型
 回答：核心对象有哪些，谁拥有谁，哪份数据是事实来源？
 - 组织对象：Tenant、Workspace、User
 - 定义对象：Agent、AgentVersion、Release、Tool、Skill、KnowledgeSource
@@ -74,7 +76,7 @@ Agent 定义    → AgentVersion 快照（不可变，一旦发布只读）
 文件         → FileService + 对象存储（唯一写入）
 ```
 
-## Agent 生命周期与运行时
+### Agent 生命周期与运行时
 回答：一个 Agent 如何从创建走向稳定运行？
 - 创建、配置、版本管理、发布、停用
 - Agent 身份：Name、Description、Instructions、配置
@@ -95,7 +97,7 @@ Agent 定义    → AgentVersion 快照（不可变，一旦发布只读）
 - Validated 检查配置和权限，Tested 检查评测结果。两项各自的通过条件写清楚，才允许进入下一态
 - 作者侧需要调试台、工具模拟，以及两个定义版本之间的差异
 
-## Agent 能力体系
+### Agent 能力体系
 回答：Agent 可以使用哪些能力，以及如何扩展？
 - Models：模型选择、统一接口、路由优先级、Fallback链
 - Tools：注册信息（名称 + 参数 schema + 执行方式 + 权限等级 + 错误分类）、API、数据库、代码执行沙箱、外部系统、错误处理
@@ -121,7 +123,7 @@ Agent 是伙伴，Skill 是方法，Tool 是连接器。Skill 不持有凭证，
 - 执行循环放在进程内，还是交给可恢复的工作流引擎
 - 多步骤中一步失败时，已成功的副作用是补偿、保留，还是交给人工
 
-## 上下文组装
+### 上下文组装
 回答：每一轮送进模型的内容如何拼出来，什么不能进去？
 - 拼装顺序：指令、技能、工具说明、记忆、检索、文件、历史
 - 超出窗口时，先丢弃或摘要哪一段
@@ -129,7 +131,7 @@ Agent 是伙伴，Skill 是方法，Tool 是连接器。Skill 不持有凭证，
 - 密钥、其他租户数据、未授权文档在哪一层被挡住
 - 长期记忆带来源、作用域和生命周期。历史消息按预算进入 Prompt，不整段永久注入
 
-## 用户交互与应用体验
+### 用户交互与应用体验
 回答：用户如何使用 Agent，如何理解和控制执行过程？
 - Chat、流式响应、多模态输入输出
 - 会话列表、历史记录、上下文恢复
@@ -155,70 +157,162 @@ Agent 是伙伴，Skill 是方法，Tool 是连接器。Skill 不持有凭证，
 ## 项目目录
 ```
 agent-platform/
-├── apps/
-│   ├── web/                        # [TS] React + Vite + AntD 控制台
-│   │   └── src/views/              # 视图（与后端服务一一对应）
-│   │       ├── login/
-│   │       ├── home/
-│   │       ├── func/               # 业务页
-│   │       │   ├── chat/           # 嵌入 DeepSeek Harness web profile 的任务界面
-│   │       │   ├── schedulers/     # 定时/日历
-│   │       │   ├── agents/         # agents / skills / tools
-│   │       │   ├── workflows/      # DAG Graph Editor
-│   │       │   ├── requests/       # 预留 /requests，后期审批
-│   │       │   ├── artifacts/      # 轻应用/制品
-│   │       │   ├── portals/        # 子应用登记。挂载 /apps/:appId
-│   │       │   ├── knowledges/     # 知识 + RAG
-│   │       │   └── resources/      # 工作区资源
-│   │       │       ├── docs/       # 文件池
-│   │       │       ├── connections/# 数据池
-│   │       │       └── models/     # 自定义模型接入配置
-│   │       └── configs/            # 平台设置
-│   │           ├── users/          # 用户及权限管理
-│   │           ├── providers/      # 平台级模型提供商
-│   │           └── system/         # 系统设置
-│   └── subapps/                    # 子应用
-│       └── template/               # 子应用的实现模板
+├── apps/                           # [Web] 前端应用
+│   ├── web/                        # [React] React + Vite 控制台
+│   │   ├── src/views/              # 视图（与后端服务一一对应）
+│   │   │   ├── login/
+│   │   │   ├── home/
+│   │   │   ├── func/               # 业务页
+│   │   │   │   ├── chat/           # 嵌入 DeepSeek Harness web profile 的任务界面
+│   │   │   │   ├── schedulers/     # 定时/日历
+│   │   │   │   ├── agents/         # agents / skills / tools
+│   │   │   │   ├── workflows/      # DAG Graph Editor
+│   │   │   │   ├── requests/       # 预留 /requests，后期审批
+│   │   │   │   ├── artifacts/      # 轻应用/制品
+│   │   │   │   ├── portals/        # 子应用登记。挂载 /apps/:appId
+│   │   │   │   ├── knowledges/     # 知识 + RAG
+│   │   │   │   └── resources/      # 工作区资源
+│   │   │   │       ├── docs/       # 文件池
+│   │   │   │       ├── connections/# 数据池
+│   │   │   │       └── models/     # 自定义模型接入配置
+│   │   │   └── configs/            # 平台设置
+│   │   │       ├── users/          # 用户及权限管理
+│   │   │       ├── providers/      # 平台级模型提供商
+│   │   │       └── system/         # 系统设置
+│   │   └── AGENTS.md
+│   └── subapps/                    # [Node] Node + Express 子应用
+│       ├── template/               # 子应用的实现模板
+│       └── AGENTS.md
 │
-├── services/
-│   ├── api/                        # [Py·FastAPI] 统一 API（monolith 聚合模式，可拆）
-│   │   ├── main.py                 # 启动：读 ENABLED_MODULES → importlib 动态加载注册
-│   │   ├── registry.py             # ★模块注册表（注释一行 = 屏蔽一块服务）
-│   │   └── modules/                # 各业务模块（独立 router + models + 迁移 + 事件）
-│   │       ├── identity/           # auth (login/token) + users + roles
-│   │       ├── logs/               # 系统级日志
-│   │       ├── files/              # 文件服务 upload(single/multi/chunk)/delete
-│   │       ├── models/             # LLM 路由 + llm-harness（DeepSeek）+ 用户密钥/平台 provider
-│   │       ├── connections/        # 数据源/连接器（数据库/API/MCP）create/test/credential
-│   │       ├── memory/             # 记忆分层 expire
-│   │       ├── runtime/            # RuntimePort：创建 Task，拉起 dsh sdk profile，回写平台 Event
-│   │       ├── knowledge/          # RAG + Knowledge（LangChain + Qdrant）chunk/source
-│   │       ├── hub/                # Agent/Skill/Tool 定义 (created/publish/active)
-│   │       ├── workflow/           # DAG 编排引擎 run/node/trigger
-│   │       ├── scheduler/          # ScheduleTask + Calendar create/trigger/request
-│   │       ├── artifacts/          # 管理侧 Artifactory 制品库 create/publish/deploy/compose
-│   │       ├── vibe/               # 生产侧 Factory Vibe Coding 生成循环（Workspace+Git）
-│   │       └── sandbox/            # 代码沙箱（默认独立部署，安全边界）execution
-│   └── deepseek-harness/           # 基于官方开源的 Chat 交互界面
+├── services/                       # [Server] 后端进程
+│   ├── api/                        # [Node] Node 统一 API，同一套库和用户
+│   │   ├── main.ts                 # 启动：读 ENABLED_MODULES，动态注册
+│   │   ├── registry.ts             # 注释一行 = 屏蔽一块模块
+│   │   └── modules/
+│   │       ├── identity/           # login、用户、角色
+│   │       ├── logs/               # 系统日志
+│   │       ├── files/              # 文件上传与删除
+│   │       ├── models/             # 模型路由、model-gateway、平台 provider
+│   │       ├── connections/        # 数据源、API、MCP、凭证引用
+│   │       ├── memory/             # 会话记忆、用户偏好、Agent 长期记忆
+│   │       ├── hub/                # Agent、Skill、Tool 的定义与发布
+│   │       ├── scheduler/          # 日程与 Cron。到点调用 runtime 创建 Task
+│   │       ├── workflow/           # DAG 定义与版本。Agent 节点交给 runtime
+│   │       ├── artifacts/          # 制品的创建、发布、部署记录
+│   │       ├── vibe/               # 生成任务单。改仓库和跑测试交给 sandbox
+│   │       └── requests/           # 预留，后期审批
+│   ├── runtime/                    # [Python] FastAPI 执行与检索
+│   │   ├── port/                   # 创建 Task，向 api 要 Hub 快照，拉起 dsh，回写 Event
+│   │   └── knowledge/              # 文档、切片、检索
+│   ├── dsh/                        # [Node] 钉住版本的 dsh 与本仓库插件
+│   │   └── plugins/                # Skill、Tool、模型、人工确认，回调 api 或 runtime
+│   ├── sandbox/                    # [Python] 代码沙箱，独立部署
+│   └── AGENTS.md
 │
-├── packages/
-│   ├── contracts/                  # OpenAPI 契约（双端生成 TS / pydantic）
-│   ├── events/                     # 事件定义（JSON Schema）+ Redis Streams 客户端
-│   ├── sdk-py/                     # Python 服务间调用 SDK
-│   ├── db/                         # 迁移 + 通用仓储（Alembic / Prisma）
-│   └── ui/                         # 前端共享组件
+├── packages/                       # [Shared] 前后端共享包
+│   ├── contracts/                  # [OpenAPI] 双端契约，生成 TS / pydantic
+│   ├── events/                     # [JSON] 事件定义与 Redis Streams
+│   ├── sdk-py/                     # [Python] 服务间调用 SDK
+│   ├── db/                         # [Python] Alembic 迁移与仓储
+│   └── ui/                         # [React] 前端共享组件
 │
-├── infrastructure/
+├── infrastructure/                 # [Docker] Compose、数据库与对象存储
+│   ├── gateway/                    # [Nginx] 对外唯一端口，只做路径转发和静态文件
 │   ├── docker-compose.yml          # 一键起全链路
 │   ├── postgres/  redis/  qdrant/  minio/
 │   ├── migrations/
-│   └── observability/              # OTel + Prometheus + Grafana + 日志
+│   └── observability/              # [OTel] Prometheus + Grafana + 日志
 │
-├── docs/                           # 架构文档
+├── docs/                           # [Markdown] 架构文档
 │
-├── package.json
-└── README.md
+└── AGENTS.md
 ```
+
+## 项目部署方案
+
+对外只有 `gateway` 一个端口。`api`、`runtime`、`dsh` 只听本机。`sandbox` 不进网关，只给 `runtime` 和 `vibe` 调。
+
+| 路径 | 转到 | 本机地址 | Docker 服务名 |
+| --- | --- | --- | --- |
+| `/`、`/apps/` | 静态文件 | `apps/web/dist`、`apps/web/public/apps` | 挂进 nginx 的目录 |
+| `/api/runtime/` | Python runtime | `127.0.0.1:8000` | `runtime:8000` |
+| `/api/knowledge/` | Python runtime | `127.0.0.1:8000` | `runtime:8000` |
+| `/api/` | Node api | `127.0.0.1:3001` | `api:3001` |
+| `/dsh/` | dsh web | `127.0.0.1:3080` | `dsh:3080` |
+
+`/api/runtime` 和 `/api/knowledge` 必须写在 `/api/` 前面。`dsh --profile sdk` 由 Python 按任务拉起，不占端口。
+
+配置放在 `infrastructure/gateway/nginx.conf`。Windows、Linux、Docker 用同一份路由，只改上游地址。
+
+```nginx
+upstream platform_api      { server 127.0.0.1:3001; }
+upstream platform_runtime  { server 127.0.0.1:8000; }
+upstream platform_dsh      { server 127.0.0.1:3080; }
+
+server {
+    listen 80;
+    client_max_body_size 100m;
+
+    location /api/runtime/ {
+        proxy_pass http://platform_runtime;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_buffering off;
+    }
+    location /api/knowledge/ {
+        proxy_pass http://platform_runtime;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_buffering off;
+    }
+    location /api/ {
+        proxy_pass http://platform_api;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    }
+    location /dsh/ {
+        proxy_pass http://platform_dsh/;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_buffering off;
+    }
+    location /apps/ {
+        alias /var/www/apps/;
+    }
+    location / {
+        root /var/www/web;
+        try_files $uri $uri/ /index.html;
+    }
+}
+```
+
+Docker 里把三个 `server` 换成 `api:3001`、`runtime:8000`、`dsh:3080`。静态目录改成容器内挂载路径。
+
+启动顺序：数据库和对象存储，然后 `api`、`runtime`、`dsh web`，最后 `gateway`。`sandbox` 与 `runtime` 一起起，不经过网关。
+
+**Linux**
+
+1. 安装 Nginx。
+2. 把上面的配置放到 `/etc/nginx/conf.d/platform.conf`。`root` 和 `alias` 改成机器上的 `apps/web/dist` 与 `public/apps`。
+3. 三个进程用 systemd 或直接在后台听 `127.0.0.1` 的 `3001`、`8000`、`3080`。
+4. `nginx -t` 通过后 `systemctl reload nginx`。
+5. 浏览器打开 `http://<主机>/`。管理接口打 `http://<主机>/api/`，对话页走 `http://<主机>/dsh/`。
+
+**Windows**
+
+1. 安装 Nginx for Windows，配置文件同上。路径写成 `C:/Docs/byMe/agent_platform/apps/web/dist` 这种正斜杠。
+2. 三个进程在 PowerShell 里听 `127.0.0.1` 的三个端口。防火墙只放行 Nginx 的 `80`，不放行 `3001`、`8000`、`3080`。
+3. `nginx -t` 后 `nginx`。改配置用 `nginx -s reload`。
+
+**Docker**
+
+1. `infrastructure/docker-compose.yml` 里定义 `api`、`runtime`、`dsh`、`sandbox`、`gateway`。只有 `gateway` 映射 `80:80`。
+2. `gateway` 挂载 `infrastructure/gateway/nginx.conf` 和前端构建目录。
+3. `docker compose up -d`。容器之间用服务名访问，不写 `127.0.0.1`。
+4. 升级 dsh 只重建 `dsh` 这个服务。`api` 和 `runtime` 不必一起换。
 
 ## 语言与框架选型
 
@@ -247,22 +341,20 @@ Frontend: React + TypeScript
 | Vitest          | 单元测试         | 前端组件和工具函数测试                     |
 | Playwright      | E2E 测试       | 浏览器端自动化测试                       |
 
-Backend: FastAPI + Uvicorn
+Backend 分成三块。`services/api` 用 Node。`services/runtime` 和 `services/sandbox` 用 Python。`infrastructure/gateway` 用 Nginx。
 
- 技术                               | 作用          | 推荐说明                           |
-| -------------------------------- | ----------- | ------------------------------ |
-| Python                           | 后端开发语言      | 统一业务 CRUD、AI Runtime、Workers   |
-| FastAPI                          | Web API 框架  | REST API、异步接口、依赖注入             |
-| Uvicorn                          | ASGI Server | FastAPI 运行服务器                  |
-| Pydantic v2                      | 数据校验        | Request / Response Schema、配置校验 |
-| SQLAlchemy 2.0                   | ORM         | 数据库模型、CRUD、事务管理                |
-| Alembic                          | 数据库迁移       | Schema Version、Migration       |
-| HTTPX                            | HTTP Client | 外部 API、第三方服务调用                 |
-| Dependency Injector / FastAPI DI | 依赖注入        | 模块解耦、Provider 装配               |
-| PyYAML                           | YAML 解析     | Plugin Manifest、系统配置           |
-| Pytest                           | 单元与集成测试     | API、Service、Plugin 测试          |
-| Ruff                             | 代码规范        | Lint、Format                    |
-| Mypy                             | 静态类型检查      | Python 类型安全                    |
+| 技术 | 作用 | 推荐说明 |
+| --- | --- | --- |
+| Node.js | `api` 与 `dsh` | 管理接口、日程、DAG 定义、制品记录。dsh 钉住版本，单独进程 |
+| TypeScript | `api` 的类型 | `main.ts`、`registry.ts`、各模块 |
+| Fastify 或 Express | Node HTTP | `services/api` 的 REST。模块可按 registry 开关 |
+| Python | `runtime` 与 `sandbox` | 创建 Task、检索、代码沙箱。不承担管理端 CRUD |
+| FastAPI + Uvicorn | Python HTTP | `/api/runtime`、`/api/knowledge` |
+| Pydantic v2 | Python 校验 | runtime 与 knowledge 的请求和事件 |
+| SQLAlchemy 2.0 + Alembic | Python 侧数据 | knowledge 与 Task 状态。Hub 等管理数据在 Node 侧 |
+| HTTPX | 进程间调用 | runtime 向 api 要 Hub 快照，插件回调 api |
+| Pytest / Ruff / Mypy | Python 质量 | runtime、knowledge、sandbox |
+| Nginx | gateway | 对外唯一端口。路径转发和静态文件。Windows、Linux、Docker 同一份路由 |
 
 3. AI Runtime：DeepSeek Harness
 
@@ -271,7 +363,7 @@ Backend: FastAPI + Uvicorn
 | 技术                        | 作用                  | 推荐说明                                 |
 | ------------------------- | ------------------- | ------------------------------------ |
 | DeepSeek Harness          | 执行循环与任务界面           | sdk profile 跑循环，web profile 嵌入任务界面。Skill 与 Tool 只消费 Hub 快照 |
-| RuntimePort               | 平台宿主                | 创建 Task、注入快照、把 dsh 事件写成平台 Event。循环不在 FastAPI 里重写 |
+| RuntimePort               | 平台宿主                | Python runtime 创建 Task、向 Node api 要快照、拉起 dsh、回写 Event。循环不在任一 API 进程里重写 |
 | model-gateway             | 模型调用                | dsh 的模型插件转调网关，不直接持有平台密钥              |
 | Pi / CodeWork             | 沙箱内代码任务             | 只用于代码 Run，不负责办公任务界面                  |
 | OpenTelemetry             | 观测                  | 平台 Event 是审计真相。dsh 会话日志不替代它          |
@@ -539,7 +631,7 @@ Agent Runtime
 
 11. 最终技术栈汇总
 
-## Recommended Technology Stack
+### Recommended Technology Stack
 
 Frontend
 
@@ -547,15 +639,15 @@ React · Vite · TypeScript · Ant Design · Tailwind CSS · Zustand · TanStack
 
 Backend
 
-Python · FastAPI · Uvicorn · Pydantic v2 · SQLAlchemy 2.0 · Alembic
+Node.js · TypeScript（`services/api`）· Python · FastAPI · Uvicorn（`services/runtime`、`sandbox`）· Nginx（`infrastructure/gateway`）
 
 AI Runtime
 
-DeepSeek Harness（sdk + web profile）· RuntimePort · model-gateway
+DeepSeek Harness（sdk + web profile，钉住版本）· Python RuntimePort · Node model-gateway
 
 Scheduler & Workflow
 
-APScheduler · ARQ · Redis · NetworkX · React Flow · DAG Engine
+Node 保存日程和 DAG 定义 · 到点或 Agent 节点调用 Python runtime · Redis · React Flow
 
 RAG & Knowledge
 
@@ -567,8 +659,8 @@ LangGraph · Workspace · Git · Docker · Playwright · Monaco Editor
 
 Database & Infrastructure
 
-PostgreSQL · pgvector · Redis · MinIO · Docker Compose · OpenTelemetry · Prometheus · Grafana
+PostgreSQL · pgvector · Redis · MinIO · Nginx · Docker Compose · OpenTelemetry · Prometheus · Grafana
 
 Plugin Architecture
 
-Python Protocol / ABC · Registry · Manifest · Dependency Injection · Importlib · Entry Points
+Node `registry.ts` 开关 api 模块 · dsh 插件在 `services/dsh/plugins` · Python runtime 只消费 Hub 快照
