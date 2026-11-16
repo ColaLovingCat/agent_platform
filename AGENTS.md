@@ -28,7 +28,7 @@ E. 轻应用搭建（Vibe Coding：页面/表单/数据模型）
 触发器（API / Webhook / 聊天 / 定时）
   → 接入层创建 Task（带 agent 指定、参数、来源、租户、超时）
   → 任务调度：入 MQ，状态 → pending
-  → Runtime 路由执行者（按任务类型选主/子 Agent，加载 System Prompt）
+  → RuntimePort 启动 DeepSeek Harness（加载 Hub 的不可变 AgentVersion 快照，注入 Workspace 的指令、Skill 和 Tool）
   → 组装上下文：任务参数 + 历史 + 知识检索 + 工具清单（按需注入）
   → 执行循环（ReAct，受预算控制：轮数/token/时间）：
        1. 调用模型（流式）
@@ -44,6 +44,8 @@ E. 轻应用搭建（Vibe Coding：页面/表单/数据模型）
   → 事件推送：界面（SSE/WS 流式）+ Webhook + 事件总线（审计/监控）
   → 任务状态落库 → 结束
 ```
+
+DeepSeek Harness 跑循环。模型调用转给 model-gateway。Tool 执行走 L1–L4。dsh 的会话日志不替代平台 Event。
 
 ## 领域模型
 回答：核心对象有哪些，谁拥有谁，哪份数据是事实来源？
@@ -77,7 +79,7 @@ Agent 定义    → AgentVersion 快照（不可变，一旦发布只读）
 - 创建、配置、版本管理、发布、停用
 - Agent 身份：Name、Description、Instructions、配置
 - 执行循环：理解任务、规划、调用工具、观察结果、继续执行
-- 单 Agent 如何运行 = "一个 Agent 的一次 Run"。多 Agent 的计划和 Agent 之间的消息归工作流与协作。编排器把 Task 拆成多个子任务 → 每个子任务路由给对应 Agent → 各自产生 Run → Agent 间消息走事件总线/工作流状态
+- 单 Agent 如何运行 = "一个 Agent 的一次 Run"。同一个 Task 里的协作用 DeepSeek Harness 的 subagent 和 Agent Teams：Lead 拉起队友，共享任务板，成员之间发消息。已发布、可定时、可审批的 DAG 仍归 Workflow：编排器把 Task 拆成多个子任务 → 每个子任务路由给对应 Agent → 各自产生 Run → 跨 Task 的消息走事件总线/工作流状态
 - 任务状态、超时、重试、暂停、恢复、取消
 - 长任务执行与人工介入。
 ```
@@ -110,6 +112,8 @@ Agent 定义    → AgentVersion 快照（不可变，一旦发布只读）
 
 一句话总结能力体系的设计逻辑：输入侧 4 个（Models/Tools/Skills/Code Sandbox）→ 理解与记忆 3 个（Knowledge/RAG/Memory）→ 外部接入 2 个（MCP/Media）→ 输出侧 3 个（Artifactory/Files/Channels）→ 编排与触发横向贯穿（Orchestration/Scheduler）
 
+Agent 是伙伴，Skill 是方法，Tool 是连接器。Skill 不持有凭证，只声明允许调用的 Tool。DeepSeek Harness 只消费 Hub 的不可变快照。执行器本地技能目录不是第二份目录。
+
 ### 执行语义
 回答：恢复和重试时，副作用如何只发生一次？
 - 工具写操作携带幂等键，避免恢复时重复下单或重复改数
@@ -138,7 +142,7 @@ Agent 定义    → AgentVersion 快照（不可变，一旦发布只读）
 ## 主要功能点
 
 - Agent 搭建、配套的 Skills / Tools Hub 的管理
-- Agent Chat / Multi Agent 的 runtime，会话/Memory/缓存/文件等配合的优化
+- 任务执行界面使用 DeepSeek Harness 的 web profile。管理台仍是自己的页面。同一个 Task 内的 team 用 dsh 的 subagent / Agent Teams。已发布的 DAG 归 Workflow
 - RAG 及知识库的搭建
 - 定时任务的创建和运行
 - Workflow 中关于 DAG flow 的引擎编辑、测试、正式运行
@@ -148,15 +152,13 @@ Agent 定义    → AgentVersion 快照（不可变，一旦发布只读）
 基于 registry.py 的注释
 模块间禁止互相 import
 
-
-
 ## 项目目录
 ```
 agent-platform/
 ├── apps/
 │   └── web/                        # [TS] React + Vite + AntD 控制台
 │       └── src/views/              # 视图（与后端服务一一对应）
-│           ├── chat/               # 对话工作台
+│           ├── chat/               # 嵌入 DeepSeek Harness web profile 的任务界面
 │           ├── schedulers/         # 定时/日历
 │           ├── agents/             # agents / skills / tools
 │           ├── workflows/          # DAG Graph Editor
@@ -178,10 +180,10 @@ agent-platform/
 │   │       ├── identity/           # auth (login/token) + users + roles
 │   │       ├── logs/               # 系统级日志
 │   │       ├── files/              # 文件服务 upload(single/multi/chunk)/delete
-│   │       ├── models/      # LLM 路由 + llm-harness（DeepSeek）+ 用户密钥/平台 provider
+│   │       ├── models/             # LLM 路由 + llm-harness（DeepSeek）+ 用户密钥/平台 provider
 │   │       ├── connections/        # 数据源/连接器（数据库/API/MCP）create/test/credential
 │   │       ├── memory/             # 记忆分层 expire
-│   │       ├── runtime/            # 单 Agent 执行 run/session/task/step/human
+│   │       ├── runtime/            # RuntimePort：创建 Task，拉起 dsh sdk profile，回写平台 Event
 │   │       ├── knowledge/          # RAG + Knowledge（LangChain + Qdrant）chunk/source
 │   │       ├── hub/                # Agent/Skill/Tool 定义 (created/publish/active)
 │   │       ├── workflow/           # DAG 编排引擎 run/node/trigger
@@ -254,27 +256,24 @@ Backend: FastAPI + Uvicorn
 | Ruff                             | 代码规范        | Lint、Format                    |
 | Mypy                             | 静态类型检查      | Python 类型安全                    |
 
-3. AI Runtime：LangChain + LangGraph / DeepSeek Harness / Pi Agent
+3. AI Runtime：DeepSeek Harness
 
-用于构建统一的 Agent Runtime，支持单 Agent、多 Agent、工具调用、状态管理、会话管理及执行追踪。
+执行循环和任务界面采用 DeepSeek Harness，经 RuntimePort 接入。平台创建 Task，加载 Hub 的不可变快照，用 `dsh --profile sdk` 执行。`chat` 嵌入 dsh 的 web profile。管理台仍是自己的页面。钉住一个 dsh 版本，预览期升级单独做。
 
 | 技术                        | 作用                  | 推荐说明                                 |
 | ------------------------- | ------------------- | ------------------------------------ |
-| LangChain                 | Agent 基础框架          | Model、Prompt、Tools、Structured Output |
-| LangGraph                 | Agent 工作流引擎         | State Graph、条件路由、循环执行、Checkpoint     |
-| DeepSeek Harness          | Agent 执行框架          | 可作为独立 Runtime / Harness 方案进行集成评估     |
-| Pi Agent                  | Agent Runtime       | 可作为另一种 Agent 实现或执行后端                 |
-| LiteLLM                   | LLM Provider 统一接入   | OpenAI、DeepSeek、Anthropic、本地模型等      |
-| Pydantic                  | Structured Output   | Agent 输出结构化数据                        |
-| LangSmith / OpenTelemetry | Agent Observability | Trace、Token、耗时、Tool Call 追踪          |
-| LangGraph Checkpointer    | 执行状态持久化             | Thread、Checkpoint、恢复执行               |
+| DeepSeek Harness          | 执行循环与任务界面           | sdk profile 跑循环，web profile 嵌入任务界面。Skill 与 Tool 只消费 Hub 快照 |
+| RuntimePort               | 平台宿主                | 创建 Task、注入快照、把 dsh 事件写成平台 Event。循环不在 FastAPI 里重写 |
+| model-gateway             | 模型调用                | dsh 的模型插件转调网关，不直接持有平台密钥              |
+| Pi / CodeWork             | 沙箱内代码任务             | 只用于代码 Run，不负责办公任务界面                  |
+| OpenTelemetry             | 观测                  | 平台 Event 是审计真相。dsh 会话日志不替代它          |
 
 ### Runtime 功能范围
 
 | 功能                | 作用                                         |
 | ----------------- | ------------------------------------------ |
-| Chat              | 单 Agent 对话、流式输出、消息管理                       |
-| Multi-Agent       | 多 Agent 协作、任务委派、结果汇总                       |
+| Chat              | 嵌入 dsh web profile，展示平台 Event             |
+| Multi-Agent       | 同一次 Task 用 dsh subagent / Agent Teams。已发布 DAG 归 Workflow |
 | Agent State       | Agent 运行状态管理                               |
 | Runtime Context   | 当前执行上下文、用户、权限、环境                           |
 | Memory            | 短期记忆、长期记忆                                  |
@@ -405,7 +404,7 @@ Backend: FastAPI + Uvicorn
 | --------------------------- | -------------------------- | ---------------------- |
 | LangGraph                   | Coding Agent Orchestration | 任务拆解、代码生成、迭代修复         |
 | LangChain                   | LLM / Tools                | 模型调用、工具集成              |
-| DeepSeek Harness / Pi Agent | Coding Agent Runtime       | 可作为可替换的执行后端            |
+| Pi / CodeWork               | 沙箱内代码执行                    | 只用于代码 Run。办公任务界面与循环用 DeepSeek Harness |
 | Workspace                   | 项目工作空间                     | 每个任务独立文件目录             |
 | GitPython                   | Git 操作                     | Commit、Branch、Diff、Tag |
 | Git                         | 版本控制                       | 代码版本、历史记录、回滚           |
@@ -544,7 +543,7 @@ Python · FastAPI · Uvicorn · Pydantic v2 · SQLAlchemy 2.0 · Alembic
 
 AI Runtime
 
-LangChain · LangGraph · LiteLLM · DeepSeek Harness / Pi Agent (可替换 Runtime)
+DeepSeek Harness（sdk + web profile）· RuntimePort · model-gateway
 
 Scheduler & Workflow
 
