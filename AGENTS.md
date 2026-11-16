@@ -156,24 +156,32 @@ Agent 是伙伴，Skill 是方法，Tool 是连接器。Skill 不持有凭证，
 ```
 agent-platform/
 ├── apps/
-│   └── web/                        # [TS] React + Vite + AntD 控制台
-│       └── src/views/              # 视图（与后端服务一一对应）
-│           ├── chat/               # 嵌入 DeepSeek Harness web profile 的任务界面
-│           ├── schedulers/         # 定时/日历
-│           ├── agents/             # agents / skills / tools
-│           ├── workflows/          # DAG Graph Editor
-│           ├── artifacts/          # 轻应用/制品
-│           ├── knowledges/         # 知识 + RAG
-│           ├── resources/          # 工作区资源
-│           │   ├── docs/           # 文件池
-│           │   ├── connections/    # 数据池
-│           │   └── models/         # 自定义模型接入配置
-│           └── configs/            # 平台设置
-│               ├── users/          # 用户及权限管理
-│               ├── providers/      # 平台级模型提供商
-│               └── system/         # 系统设置
+│   ├── web/                        # [TS] React + Vite + AntD 控制台
+│   │   └── src/views/              # 视图（与后端服务一一对应）
+│   │       ├── login/
+│   │       ├── home/
+│   │       ├── func/               # 业务页
+│   │       │   ├── chat/           # 嵌入 DeepSeek Harness web profile 的任务界面
+│   │       │   ├── schedulers/     # 定时/日历
+│   │       │   ├── agents/         # agents / skills / tools
+│   │       │   ├── workflows/      # DAG Graph Editor
+│   │       │   ├── requests/       # 预留 /requests，后期审批
+│   │       │   ├── artifacts/      # 轻应用/制品
+│   │       │   ├── portals/        # 子应用登记。挂载 /apps/:appId
+│   │       │   ├── knowledges/     # 知识 + RAG
+│   │       │   └── resources/      # 工作区资源
+│   │       │       ├── docs/       # 文件池
+│   │       │       ├── connections/# 数据池
+│   │       │       └── models/     # 自定义模型接入配置
+│   │       └── configs/            # 平台设置
+│   │           ├── users/          # 用户及权限管理
+│   │           ├── providers/      # 平台级模型提供商
+│   │           └── system/         # 系统设置
+│   └── subapps/                    # 子应用
+│       └── template/               # 子应用的实现模板
+│
 ├── services/
-│   └── api/                        # [Py·FastAPI] 统一 API（monolith 聚合模式，可拆）
+│   ├── api/                        # [Py·FastAPI] 统一 API（monolith 聚合模式，可拆）
 │   │   ├── main.py                 # 启动：读 ENABLED_MODULES → importlib 动态加载注册
 │   │   ├── registry.py             # ★模块注册表（注释一行 = 屏蔽一块服务）
 │   │   └── modules/                # 各业务模块（独立 router + models + 迁移 + 事件）

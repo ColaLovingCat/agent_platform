@@ -1,0 +1,8 @@
+node_modules/
+dist/
+dbs/*.sqlite
+dbs/db_connect.json
+uploads/*
+!uploads/.gitkeep
+logs/*
+!logs/.gitkeep
