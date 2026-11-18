@@ -184,29 +184,97 @@ agent-platform/
 │       ├── template/               # 子应用的实现模板
 │       └── AGENTS.md
 │
-├── services/                       # [Server] 后端进程
-│   ├── api/                        # [Node] Node 统一 API，同一套库和用户
-│   │   ├── main.ts                 # 启动：读 ENABLED_MODULES，动态注册
+├── services/                       # 一个目录一个部署单元。互相只走 HTTP
+│   ├── api/                        # [Node][Fastify] Control Plane 的 API Gateway / Management API
+│   │   ├── main.ts                 # 读 ENABLED_MODULES，动态注册
 │   │   ├── registry.ts             # 注释一行 = 屏蔽一块模块
-│   │   └── modules/
-│   │       ├── identity/           # login、用户、角色
-│   │       ├── logs/               # 系统日志
-│   │       ├── files/              # 文件上传与删除
-│   │       ├── models/             # 模型路由、model-gateway、平台 provider
-│   │       ├── connections/        # 数据源、API、MCP、凭证引用
-│   │       ├── memory/             # 会话记忆、用户偏好、Agent 长期记忆
-│   │       ├── hub/                # Agent、Skill、Tool 的定义与发布
-│   │       ├── scheduler/          # 日程与 Cron。到点调用 runtime 创建 Task
-│   │       ├── workflow/           # DAG 定义与版本。Agent 节点交给 runtime
-│   │       ├── artifacts/          # 制品的创建、发布、部署记录
-│   │       ├── vibe/               # 生成任务单。改仓库和跑测试交给 sandbox
-│   │       └── requests/           # 预留，后期审批
-│   ├── runtime/                    # [Python] FastAPI 执行与检索
-│   │   ├── port/                   # 创建 Task，向 api 要 Hub 快照，拉起 dsh，回写 Event
-│   │   └── knowledge/              # 文档、切片、检索
-│   ├── dsh/                        # [Node] 钉住版本的 dsh 与本仓库插件
-│   │   └── plugins/                # Skill、Tool、模型、人工确认，回调 api 或 runtime
-│   ├── sandbox/                    # [Python] 代码沙箱，独立部署
+│   │   ├── bootstrap/
+│   │   ├── modules/
+│   │   │   ├── identity/           # 用户、角色。管理页调用
+│   │   │   ├── files/              # 文件。dsh 插件按需读取
+│   │   │   ├── models/             # model-gateway。dsh 每轮调用，密钥留在这里
+│   │   │   ├── connections/        # 数据源、MCP、凭证引用。dsh 插件按需调用
+│   │   │   ├── hub/                # Agent、Skill、Tool 的不可变版本
+│   │   │   ├── scheduler/          # 只存日程。到点 HTTP 调用 engine
+│   │   │   ├── workflow/           # 只存 DAG。Agent 节点 HTTP 调用 engine
+│   │   │   ├── artifacts/          # 只存发布记录。生成 HTTP 调用 vibe
+│   │   │   ├── logs/               # 系统日志
+│   │   │   └── requests/           # 预留。申请、审批、放行
+│   │   ├── workers/
+│   │   ├── adapters/
+│   │   └── migrations/
+│   │
+│   ├── engine/                     # [Python][FastAPI] 整个 Agent Platform 的核心运行时。Task、Run、Event
+│   │   ├── main.py
+│   │   ├── registry.py
+│   │   ├── modules/
+│   │   │   ├── runtime/
+│   │   │   ├── agents/
+│   │   │   ├── multi_agents/
+│   │   │   ├── tasks/
+│   │   │   ├── runs/
+│   │   │   ├── events/
+│   │   │   ├── sessions/
+│   │   │   ├── memory/             # 同进程模块。会话、偏好、长期记忆的唯一写入
+│   │   │   ├── checkpoints/
+│   │   │   ├── tools/
+│   │   │   └── permissions/
+│   │   ├── runtimes/
+│   │   │   ├── base.py
+│   │   │   ├── langgraph/
+│   │   │   ├── deepseek_harness/
+│   │   │   └── pi_agent/
+│   │   ├── workers/
+│   │   ├── adapters/
+│   │   └── migrations/
+│   │                 
+│   ├── dsh/                        # [Node][DeepSeek Harness] 非独立部署。engine 拉起
+│   │   ├── src/
+│   │   │   ├── main.ts
+│   │   │   ├── plugins/
+│   │   │   ├── protocol/
+│   │   │   └── adapters/
+│   │   └── package.json
+│   │
+│   ├── vibe/                       # [Python][FastAPI] 一个进程。生成任务，调用 sandbox 的 Pi
+│   │   ├── main.py
+│   │   ├── modules/
+│   │   │   ├── projects/
+│   │   │   ├── jobs/
+│   │   │   ├── planning/
+│   │   │   ├── coding/
+│   │   │   ├── workspace/
+│   │   │   ├── git/
+│   │   │   └── publishing/
+│   │   ├── runtimes/
+│   │   ├── adapters/
+│   │   ├── workers/
+│   │   └── migrations/
+│   │
+│   ├── rag/                        # [Python][FastAPI] 一个进程。知识库。Agent 按挂载检索
+│   │   ├── main.py
+│   │   ├── modules/
+│   │   │   ├── knowledge_bases/
+│   │   │   ├── source/              # 知识库与文档接入
+│   │   │   ├── parse/               # 解析 PDF、Word、Excel
+│   │   │   ├── chunk/               # 切片
+│   │   │   ├── embed/               # 向量化。模型调用走 api/models
+│   │   │   ├── index/
+│   │   │   ├── retrieve/            # 召回、重排、引用
+│   │   │   ├── rerank/
+│   │   │   ├── citations/
+│   │   │   └── permissions/
+│   │   ├── workers/
+│   │   └── migrations/
+│   │
+│   ├── sandbox/                    # [Python][FastAPI] 一个进程。不进网关。无出站调用
+│   │   ├── main.py
+│   │   ├── api/
+│   │   ├── runners/
+│   │   ├── isolation/
+│   │   ├── policies/
+│   │   └── workers/
+│   │
 │   └── AGENTS.md
 │
 ├── packages/                       # [Shared] 前后端共享包
@@ -217,28 +285,56 @@ agent-platform/
 │   └── ui/                         # [React] 前端共享组件
 │
 ├── infrastructure/                 # [Docker] Compose、数据库与对象存储
-│   ├── gateway/                    # [Nginx] 对外唯一端口，只做路径转发和静态文件
 │   ├── docker-compose.yml          # 一键起全链路
+│   ├── gateway/                    # [Nginx] 对外唯一端口。路径转发和静态文件
 │   ├── postgres/  redis/  qdrant/  minio/
 │   ├── migrations/
 │   └── observability/              # [OTel] Prometheus + Grafana + 日志
 │
+├── tests/                          
 ├── docs/                           # [Markdown] 架构文档
 │
 └── AGENTS.md
 ```
 
+单个模块采用统一结构，模块之间只能通过公开接口调用
+```
+modules/
+  hub/
+    index.ts                 # 模块注册入口
+    manifest.ts              # 模块元信息
+    routes/
+      agents.ts
+      skills.ts
+      tools.ts
+    services/
+      agent.service.ts
+      skill.service.ts
+      tool.service.ts
+    repositories/
+      agent.repository.ts
+    schemas/
+      agent.schema.ts
+    events/
+      hub.events.ts
+```
+
+```
+import type { ModelGateway }
+from "../models/public";
+```
+
 ## 项目部署方案
 
-对外只有 `gateway` 一个端口。`api`、`runtime`、`dsh` 只听本机。`sandbox` 不进网关，只给 `runtime` 和 `vibe` 调。
+对外只有 `gateway` 一个端口。`api` 和 `runtime` 只听本机。`dsh` 由 `runtime` 拉起，不是独立服务。`sandbox` 不进网关，只给 `runtime` 和 `vibe` 调。
 
 | 路径 | 转到 | 本机地址 | Docker 服务名 |
 | --- | --- | --- | --- |
 | `/`、`/apps/` | 静态文件 | `apps/web/dist`、`apps/web/public/apps` | 挂进 nginx 的目录 |
 | `/api/runtime/` | Python runtime | `127.0.0.1:8000` | `runtime:8000` |
-| `/api/knowledge/` | Python runtime | `127.0.0.1:8000` | `runtime:8000` |
+| `/api/knowledge/` | Python rag | `127.0.0.1:8001` | `rag:8001` |
 | `/api/` | Node api | `127.0.0.1:3001` | `api:3001` |
-| `/dsh/` | dsh web | `127.0.0.1:3080` | `dsh:3080` |
+| `/dsh/` | runtime 拉起的 dsh web | `127.0.0.1:3080` | `runtime` 进程内的 `3080` |
 
 `/api/runtime` 和 `/api/knowledge` 必须写在 `/api/` 前面。`dsh --profile sdk` 由 Python 按任务拉起，不占端口。
 
@@ -247,6 +343,7 @@ agent-platform/
 ```nginx
 upstream platform_api      { server 127.0.0.1:3001; }
 upstream platform_runtime  { server 127.0.0.1:8000; }
+upstream platform_rag      { server 127.0.0.1:8001; }
 upstream platform_dsh      { server 127.0.0.1:3080; }
 
 server {
@@ -261,7 +358,7 @@ server {
         proxy_buffering off;
     }
     location /api/knowledge/ {
-        proxy_pass http://platform_runtime;
+        proxy_pass http://platform_rag;
         proxy_http_version 1.1;
         proxy_set_header Host $host;
         proxy_buffering off;
@@ -289,30 +386,30 @@ server {
 }
 ```
 
-Docker 里把三个 `server` 换成 `api:3001`、`runtime:8000`、`dsh:3080`。静态目录改成容器内挂载路径。
+Docker 里把 `platform_api` 换成 `api:3001`，`platform_runtime` 换成 `runtime:8000`，`platform_rag` 换成 `rag:8001`。`platform_dsh` 仍是 `runtime` 拉起后的 `3080`，不单独建 dsh 容器。静态目录改成容器内挂载路径。
 
-启动顺序：数据库和对象存储，然后 `api`、`runtime`、`dsh web`，最后 `gateway`。`sandbox` 与 `runtime` 一起起，不经过网关。
+启动顺序：数据库和对象存储，然后 `api`、`runtime`（由它拉起 dsh web）、`rag`，最后 `gateway`。`sandbox` 与 `runtime` 一起起，不经过网关。
 
 **Linux**
 
 1. 安装 Nginx。
 2. 把上面的配置放到 `/etc/nginx/conf.d/platform.conf`。`root` 和 `alias` 改成机器上的 `apps/web/dist` 与 `public/apps`。
-3. 三个进程用 systemd 或直接在后台听 `127.0.0.1` 的 `3001`、`8000`、`3080`。
+3. `api` 听 `127.0.0.1:3001`，`runtime` 听 `127.0.0.1:8000`，`rag` 听 `127.0.0.1:8001`。`runtime` 再拉起 dsh web，听 `127.0.0.1:3080`。
 4. `nginx -t` 通过后 `systemctl reload nginx`。
 5. 浏览器打开 `http://<主机>/`。管理接口打 `http://<主机>/api/`，对话页走 `http://<主机>/dsh/`。
 
 **Windows**
 
 1. 安装 Nginx for Windows，配置文件同上。路径写成 `C:/Docs/byMe/agent_platform/apps/web/dist` 这种正斜杠。
-2. 三个进程在 PowerShell 里听 `127.0.0.1` 的三个端口。防火墙只放行 Nginx 的 `80`，不放行 `3001`、`8000`、`3080`。
+2. `api` 听 `127.0.0.1:3001`，`runtime` 听 `127.0.0.1:8000`，`rag` 听 `127.0.0.1:8001`，并由 `runtime` 拉起 dsh web（`3080`）。防火墙只放行 Nginx 的 `80`。
 3. `nginx -t` 后 `nginx`。改配置用 `nginx -s reload`。
 
 **Docker**
 
-1. `infrastructure/docker-compose.yml` 里定义 `api`、`runtime`、`dsh`、`sandbox`、`gateway`。只有 `gateway` 映射 `80:80`。
+1. `infrastructure/docker-compose.yml` 里定义 `api`、`runtime`、`rag`、`sandbox`、`gateway`。只有 `gateway` 映射 `80:80`。`dsh` 在 `runtime` 容器里由它拉起。
 2. `gateway` 挂载 `infrastructure/gateway/nginx.conf` 和前端构建目录。
 3. `docker compose up -d`。容器之间用服务名访问，不写 `127.0.0.1`。
-4. 升级 dsh 只重建 `dsh` 这个服务。`api` 和 `runtime` 不必一起换。
+4. 升级 dsh 时重建 `runtime` 容器。`api` 不必一起换。
 
 ## 语言与框架选型
 
@@ -341,19 +438,19 @@ Frontend: React + TypeScript
 | Vitest          | 单元测试         | 前端组件和工具函数测试                     |
 | Playwright      | E2E 测试       | 浏览器端自动化测试                       |
 
-Backend 分成三块。`services/api` 用 Node。`services/runtime` 和 `services/sandbox` 用 Python。`infrastructure/gateway` 用 Nginx。
+Backend 分成几块。`services/api` 用 Node。`services/runtime/port`、`services/runtime/rag` 和 `services/sandbox` 用 Python。`infrastructure/gateway` 用 Nginx。
 
 | 技术 | 作用 | 推荐说明 |
 | --- | --- | --- |
 | Node.js | `api` 与 `dsh` | 管理接口、日程、DAG 定义、制品记录。dsh 钉住版本，单独进程 |
 | TypeScript | `api` 的类型 | `main.ts`、`registry.ts`、各模块 |
 | Fastify 或 Express | Node HTTP | `services/api` 的 REST。模块可按 registry 开关 |
-| Python | `runtime` 与 `sandbox` | 创建 Task、检索、代码沙箱。不承担管理端 CRUD |
-| FastAPI + Uvicorn | Python HTTP | `/api/runtime`、`/api/knowledge` |
-| Pydantic v2 | Python 校验 | runtime 与 knowledge 的请求和事件 |
-| SQLAlchemy 2.0 + Alembic | Python 侧数据 | knowledge 与 Task 状态。Hub 等管理数据在 Node 侧 |
+| Python | `runtime`、`rag` 与 `sandbox` | 创建 Task、知识库、代码沙箱。不承担管理端 CRUD |
+| FastAPI + Uvicorn | Python HTTP | `/api/runtime` 在 runtime，`/api/knowledge` 在 rag |
+| Pydantic v2 | Python 校验 | runtime、rag 与 sandbox 的请求和事件 |
+| SQLAlchemy 2.0 + Alembic | Python 侧数据 | rag 的切片与 Task 状态。Hub 等管理数据在 Node 侧 |
 | HTTPX | 进程间调用 | runtime 向 api 要 Hub 快照，插件回调 api |
-| Pytest / Ruff / Mypy | Python 质量 | runtime、knowledge、sandbox |
+| Pytest / Ruff / Mypy | Python 质量 | runtime、rag、sandbox |
 | Nginx | gateway | 对外唯一端口。路径转发和静态文件。Windows、Linux、Docker 同一份路由 |
 
 3. AI Runtime：DeepSeek Harness
@@ -639,7 +736,7 @@ React · Vite · TypeScript · Ant Design · Tailwind CSS · Zustand · TanStack
 
 Backend
 
-Node.js · TypeScript（`services/api`）· Python · FastAPI · Uvicorn（`services/runtime`、`sandbox`）· Nginx（`infrastructure/gateway`）
+Node.js · TypeScript（`services/api`）· Python · FastAPI · Uvicorn（`runtime/port`、`runtime/rag`、`sandbox`）· Nginx（`infrastructure/gateway`）
 
 AI Runtime
 
@@ -663,4 +760,4 @@ PostgreSQL · pgvector · Redis · MinIO · Nginx · Docker Compose · OpenTelem
 
 Plugin Architecture
 
-Node `registry.ts` 开关 api 模块 · dsh 插件在 `services/dsh/plugins` · Python runtime 只消费 Hub 快照
+Node `registry.ts` 开关 api 模块 · dsh 插件在 `services/runtime/dsh/plugins`，由 runtime 拉起 · Python runtime 只消费 Hub 快照
