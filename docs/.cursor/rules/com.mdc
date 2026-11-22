@@ -1,0 +1,15 @@
+---
+description: "项目开发过程中修改代码需要遵循的规则"
+globs: []
+alwaysApply: true
+---
+
+## Rules
+
+1.The READ.md files in each project folder contain the corresponding file structure and routing structure. Do not modify them lightly. If changes are needed, please discuss with me first
+
+2.Do not proactively run test steps or linting, etc. You can ask me
+
+3.Timely update the requirements.txt/package.json/table.sql files in the project
+
+4.avoid using Patch/Update/Delete for RestfulAPI
