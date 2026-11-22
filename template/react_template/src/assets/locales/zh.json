@@ -1,0 +1,35 @@
+{
+  "env": {
+    "development": "开发环境",
+    "test": "测试环境",
+    "production": "生产环境"
+  },
+  "form": {
+    "account": "账号",
+    "password": "密码"
+  },
+  "btn": {
+    "login": "登录",
+    "sso": "SSO 登录"
+  },
+  "login": {
+    "submit": "登录",
+    "logout": "注销",
+    "remember": "记住账号",
+    "create": "创建账号",
+    "already": "已有账号？",
+    "back": "返回登录",
+    "register": "注册",
+    "other": "其他登录方式",
+    "ssoing": "SSO 登录中..."
+  },
+  "message": {
+    "password": {
+      "notmatch": "两次输入的密码不一致",
+      "notcom": "密码长度至少 8 位"
+    }
+  },
+  "system": {
+    "home": "首页"
+  }
+}

@@ -1,0 +1,119 @@
+/* Modern Enterprise SaaS Table Style */
+table {
+    border-collapse: collapse;
+    border-spacing: 0;
+}
+
+.table {
+    width: 100%;
+    background: #ffffff;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 
+        0 1px 3px rgba(0, 0, 0, 0.04),
+        0 4px 12px rgba(0, 0, 0, 0.03);
+}
+
+.table thead tr {
+    background: linear-gradient(135deg, #fafbfc 0%, #f3f4f6 100%);
+}
+
+.table thead th {
+    padding: 16px 20px;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    text-align: left;
+    border-bottom: 1px solid rgba(229, 231, 235, 0.8);
+    white-space: nowrap;
+}
+
+.table thead th:first-child {
+    padding-left: 24px;
+}
+
+.table thead th:last-child {
+    padding-right: 24px;
+}
+
+.table thead.with-border th {
+    border: 1px solid rgba(229, 231, 235, 0.6);
+}
+
+.table .tr-empty {
+    color: #9ca3af;
+    font-weight: 500;
+    background: #fafbfc;
+}
+
+.table .tr-empty td {
+    padding: 40px 20px;
+    text-align: center;
+}
+
+.table tbody tr {
+    background: #ffffff;
+    transition: all 0.2s ease;
+}
+
+.table tbody tr:nth-child(2n) {
+    background: #fafbfc;
+}
+
+.table tbody tr:hover {
+    background: rgba(99, 102, 241, 0.04);
+}
+
+.table tbody td {
+    padding: 14px 20px;
+    text-align: left;
+    font-size: 0.875rem;
+    color: #374151;
+    border-bottom: 1px solid rgba(229, 231, 235, 0.5);
+}
+
+.table tbody td:first-child {
+    padding-left: 24px;
+}
+
+.table tbody td:last-child {
+    padding-right: 24px;
+}
+
+.table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+/* Gradient Header Variant */
+.table.table-gradient thead tr {
+    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+}
+
+.table.table-gradient thead th {
+    color: rgba(255, 255, 255, 0.9);
+    border-bottom: none;
+}
+
+/* Bordered Variant */
+.table.table-bordered {
+    border: 1px solid rgba(229, 231, 235, 0.8);
+}
+
+.table.table-bordered tbody td {
+    border-right: 1px solid rgba(229, 231, 235, 0.5);
+}
+
+.table.table-bordered tbody td:last-child {
+    border-right: none;
+}
+
+/* Compact Variant */
+.table.table-compact thead th {
+    padding: 12px 16px;
+}
+
+.table.table-compact tbody td {
+    padding: 10px 16px;
+}

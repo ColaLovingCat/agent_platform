@@ -1,0 +1,94 @@
+﻿@font-face {
+    font-family: "boschsans";
+    font-style: normal;
+    font-weight: 800;
+    src:
+        url("fonts-woff2/BoschSans-Black-v5_003.woff2") format("woff2"),
+        url("fonts-woff/BoschSans-Black-v5_003.woff") format("woff"),
+        url("fonts-ttf/BoschSans-Black-v5_003.ttf") format("truetype");
+}
+@font-face {
+    font-family: "boschsans";
+    font-style: italic;
+    font-weight: 800;
+    src:
+        url("fonts-woff2/BoschSans-BlackItalic-v5_003.woff2") format("woff2"),
+        url("fonts-woff/BoschSans-BlackItalic-v5_003.woff") format("woff"),
+        url("fonts-ttf/BoschSans-BlackItalic-v5_003.ttf") format("truetype");
+}
+
+@font-face {
+    font-family: "boschsans";
+    font-style: normal;
+    font-weight: 700;
+    src:
+        url("fonts-woff2/BoschSans-Bold-v5_003.woff2") format("woff2"),
+        url("fonts-woff/BoschSans-Bold-v5_003.woff") format("woff"),
+        url("fonts-ttf/BoschSans-Bold-v5_003.ttf") format("truetype");
+}
+@font-face {
+    font-family: "boschsans";
+    font-style: italic;
+    font-weight: 700;
+    src:
+        url("fonts-woff2/BoschSans-BoldItalic-v5_003.woff2") format("woff2"),
+        url("fonts-woff/BoschSans-BoldItalic-v5_003.woff") format("woff"),
+        url("fonts-ttf/BoschSans-BoldItalic-v5_003.ttf") format("truetype");
+}
+
+@font-face {
+    font-family: "boschsans";
+    font-style: normal;
+    font-weight: 500;
+    src:
+        url("fonts-woff2/BoschSans-Medium-v5_003.woff2") format("woff2"),
+        url("fonts-woff/BoschSans-Medium-v5_003.woff") format("woff"),
+        url("fonts-ttf/BoschSans-Medium-v5_003.ttf") format("truetype");
+}
+@font-face {
+    font-family: "boschsans";
+    font-style: italic;
+    font-weight: 500;
+    src:
+        url("fonts-woff2/BoschSans-MediumItalic-v5_003.woff2") format("woff2"),
+        url("fonts-woff/BoschSans-MediumItalic-v5_003.woff") format("woff"),
+        url("fonts-ttf/BoschSans-MediumItalic-v5_003.ttf") format("truetype");
+}
+
+@font-face {
+    font-family: "boschsans";
+    font-style: normal;
+    font-weight: 400;
+    src:
+        url("fonts-woff2/BoschSans-Regular-v5_003.woff2") format("woff2"),
+        url("fonts-woff/BoschSans-Regular-v5_003.woff") format("woff"),
+        url("fonts-ttf/BoschSans-Regular-v5_003.ttf") format("truetype");
+}
+@font-face {
+    font-family: "boschsans";
+    font-style: italic;
+    font-weight: 400;
+    src:
+        url("fonts-woff2/BoschSans-Italic-v5_003.woff2") format("woff2"),
+        url("fonts-woff/BoschSans-Italic-v5_003.woff") format("woff"),
+        url("fonts-ttf/BoschSans-Italic-v5_003.ttf") format("truetype");
+}
+
+@font-face {
+    font-family: "boschsans";
+    font-style: normal;
+    font-weight: 200;
+    src:
+        url("fonts-woff2/BoschSans-Light-v5_003.woff2") format("woff2"),
+        url("fonts-woff/BoschSans-Light-v5_003.woff") format("woff"),
+        url("fonts-ttf/BoschSans-Light-v5_003.ttf") format("truetype");
+}
+@font-face {
+    font-family: "boschsans";
+    font-style: italic;
+    font-weight: 200;
+    src:
+        url("fonts-woff2/BoschSans-LightItalic-v5_003.woff2") format("woff2"),
+        url("fonts-woff/BoschSans-LightItalic-v5_003.woff") format("woff"),
+        url("fonts-ttf/BoschSans-LightItalic-v5_003.ttf") format("truetype");
+}

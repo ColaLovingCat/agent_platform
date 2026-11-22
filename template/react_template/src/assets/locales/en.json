@@ -1,0 +1,35 @@
+{
+  "env": {
+    "development": "Development",
+    "test": "Test",
+    "production": "Production"
+  },
+  "form": {
+    "account": "Account",
+    "password": "Password"
+  },
+  "btn": {
+    "login": "Login",
+    "sso": "SSO Login"
+  },
+  "login": {
+    "submit": "Login",
+    "logout": "Log out",
+    "remember": "Remember account",
+    "create": "Create account",
+    "already": "Already have an account?",
+    "back": "Back to login",
+    "register": "Register",
+    "other": "Other sign-in options",
+    "ssoing": "Signing in with SSO..."
+  },
+  "message": {
+    "password": {
+      "notmatch": "Passwords do not match",
+      "notcom": "Password must be at least 8 characters"
+    }
+  },
+  "system": {
+    "home": "Home"
+  }
+}

@@ -1,0 +1,45 @@
+// font-awesome
+@import url(@/assets/fonts/font-awesome/css/all.min.css);
+
+// bosch
+@import url(@/assets/fonts/boschsans/boschsans.css);
+@import url(@/assets/fonts/boschicons/boschicons.css);
+
+@import url(@/assets/styles/reset.css);
+@import url(@/assets/styles/pubs.css);
+@import url(@/assets/styles/theme.css);
+@import url(@/assets/styles/pages.css);
+@import url(@/assets/styles/box.css);
+@import url(@/assets/styles/table.css);
+@import url(@/assets/styles/btns.css);
+
+@import url(@/components/chats/markdown/markdown.scss);
+@import url(@/components/workflows/styles.scss);
+
+@import url("monaco-editor/min/vs/editor/editor.main.css");
+
+.pages {
+  .ant-menu {
+    width: 100%;
+    justify-content: center;
+
+    .router-link-active {
+      display: flex;
+      align-items: center;
+    }
+  }
+}
+
+html[data-theme="dark"] {
+  .ant-menu {
+    color: var(--color-page-text);
+    background: var(--color-page-bg) !important;
+    justify-content: center;
+
+    .ant-menu-submenu-title:hover,
+    .ant-menu-item:hover {
+      color: var(--color-page-text) !important;
+    }
+  }
+}
+

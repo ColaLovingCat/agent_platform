@@ -157,6 +157,7 @@ Agent 是伙伴，Skill 是方法，Tool 是连接器。Skill 不持有凭证，
 ## 项目目录
 ```
 agent-platform/
+├── template/                       # 项目模板
 ├── apps/                           # [Web] 前端应用
 │   ├── web/                        # [React] React + Vite 控制台
 │   │   ├── src/views/              # 视图（与后端服务一一对应）

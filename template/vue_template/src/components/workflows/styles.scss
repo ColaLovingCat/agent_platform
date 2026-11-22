@@ -1,0 +1,12 @@
+.x6-node foreignObject > body {
+  min-height: unset;
+}
+
+.x6-widget-selection-box,
+.x6-widget-selection-box-node {
+  pointer-events: none !important;
+}
+
+.ant-drawer.drawer-configs .ant-drawer-body {
+  padding: 0;
+}

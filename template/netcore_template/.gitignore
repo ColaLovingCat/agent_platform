@@ -1,0 +1,77 @@
+## .NET Core / .NET 8
+bin/
+obj/
+*.user
+*.rsuser
+*.suo
+*.userosscache
+*.sln.docstates
+
+## Visual Studio
+.vs/
+.vscode/
+*.code-workspace
+
+## Build Results
+[Ll]og/
+[Bb]uild/
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+
+## EF Core
+migrations/            # ������汾���� Migration����ɾȥ����
+*.db                  # ���� SQLite �ļ�������У�
+*.mdf                 # ���� MSSQL �����ļ�
+*.ldf
+
+## NuGet
+*.nupkg
+*.snupkg
+*.nuspec
+.nuget/
+packages/
+project.lock.json
+project.fragment.lock.json
+
+## Secrets / Local Configs
+appsettings.*.local.json
+secrets.json
+
+## User-specific files
+*.swp
+*.sln.iml
+
+## Logs
+*.log
+
+## IDEs and tools
+.idea/
+*.tss
+*.launch
+*.DS_Store
+
+## System files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+## Rider / JetBrains
+.idea/
+*.sln.iml
+*.dotCover
+
+# Swagger generated files (optional)
+swagger.json
+swagger.yaml
+
+*/wwwroot/uploads/
+*/wwwroot/assets/
+*/wwwroot/docs/
+*/wwwroot/apps/
+*/wwwroot/_versions/
+*/wwwroot/systems/
+*/dist/
+
+*/appsettings.json

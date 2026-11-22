@@ -1,0 +1,256 @@
+{
+  "schemaVersion": 1,
+  "generatedBy": "@file-viewer/vite-plugin",
+  "rendererIds": [
+    "pdf",
+    "ofd",
+    "cad",
+    "typst",
+    "office-presentation-binary",
+    "office-presentation",
+    "office-word-openxml",
+    "office-word-binary",
+    "open-document",
+    "spreadsheet-openxml",
+    "spreadsheet-dbf",
+    "apple-pages",
+    "apple-numbers",
+    "apple-keynote",
+    "office-wordperfect",
+    "office-hangul",
+    "drawing",
+    "model",
+    "archive",
+    "email",
+    "epub",
+    "ebook-fb2",
+    "umd",
+    "code",
+    "markdown",
+    "image",
+    "audio",
+    "video",
+    "mindmap",
+    "geo",
+    "data-asset",
+    "eda"
+  ],
+  "copiedAt": "2026-11-19T09:21:36.651Z",
+  "assets": [
+    {
+      "rendererId": "pdf",
+      "id": "pdf-worker",
+      "to": "C:\\Docs\\byMe\\agent_platform\\template\\react_template\\public\\file-viewer\\vendor\\pdf\\pdf.worker.mjs",
+      "copied": true,
+      "sourcePackage": "pdfjs-dist",
+      "sourceVersion": "5.4.624"
+    },
+    {
+      "rendererId": "pdf",
+      "id": "pdf-cmaps",
+      "to": "C:\\Docs\\byMe\\agent_platform\\template\\react_template\\public\\file-viewer\\vendor\\pdf\\cmaps",
+      "copied": true,
+      "sourcePackage": "pdfjs-dist",
+      "sourceVersion": "5.4.624"
+    },
+    {
+      "rendererId": "pdf",
+      "id": "pdf-wasm",
+      "to": "C:\\Docs\\byMe\\agent_platform\\template\\react_template\\public\\file-viewer\\vendor\\pdf\\wasm",
+      "copied": true,
+      "sourcePackage": "pdfjs-dist",
+      "sourceVersion": "5.4.624"
+    },
+    {
+      "rendererId": "pdf",
+      "id": "pdf-standard-fonts",
+      "to": "C:\\Docs\\byMe\\agent_platform\\template\\react_template\\public\\file-viewer\\vendor\\pdf\\standard_fonts",
+      "copied": true,
+      "sourcePackage": "pdfjs-dist",
+      "sourceVersion": "5.4.624"
+    },
+    {
+      "rendererId": "pdf",
+      "id": "pdf-cjk-font-fallback",
+      "to": "C:\\Docs\\byMe\\agent_platform\\template\\react_template\\public\\file-viewer\\vendor\\pdf\\fonts",
+      "copied": true
+    },
+    {
+      "rendererId": "office-presentation",
+      "id": "pptx-worker",
+      "to": "C:\\Docs\\byMe\\agent_platform\\template\\react_template\\public\\file-viewer\\vendor\\pptx\\pptx.worker.js",
+      "copied": true
+    },
+    {
+      "rendererId": "office-presentation-binary",
+      "id": "ppt-module",
+      "to": "C:\\Docs\\byMe\\agent_platform\\template\\react_template\\public\\file-viewer\\vendor\\ppt\\index.mjs",
+      "copied": true,
+      "sourcePackage": "@file-viewer/ppt",
+      "sourceVersion": "0.3.3"
+    },
+    {
+      "rendererId": "office-presentation-binary",
+      "id": "ppt-worker",
+      "to": "C:\\Docs\\byMe\\agent_platform\\template\\react_template\\public\\file-viewer\\vendor\\ppt\\worker.mjs",
+      "copied": true,
+      "sourcePackage": "@file-viewer/ppt",
+      "sourceVersion": "0.3.3"
+    },
+    {
+      "rendererId": "office-presentation-binary",
+      "id": "ppt-frame-cache",
+      "to": "C:\\Docs\\byMe\\agent_platform\\template\\react_template\\public\\file-viewer\\vendor\\ppt\\frame-cache.mjs",
+      "copied": true,
+      "sourcePackage": "@file-viewer/ppt",
+      "sourceVersion": "0.3.3"
+    },
+    {
+      "rendererId": "office-presentation-binary",
+      "id": "ppt-wasm",
+      "to": "C:\\Docs\\byMe\\agent_platform\\template\\react_template\\public\\file-viewer\\vendor\\ppt\\ppt-native.wasm",
+      "copied": true,
+      "sourcePackage": "@file-viewer/ppt",
+      "sourceVersion": "0.3.3"
+    },
+    {
+      "rendererId": "office-presentation-binary",
+      "id": "ppt-cjk-font",
+      "to": "C:\\Docs\\byMe\\agent_platform\\template\\react_template\\public\\file-viewer\\vendor\\ppt\\ppt-font-cjk.otf",
+      "copied": true,
+      "sourcePackage": "@file-viewer/ppt",
+      "sourceVersion": "0.3.3"
+    },
+    {
+      "rendererId": "office-presentation-binary",
+      "id": "ppt-manifest",
+      "to": "C:\\Docs\\byMe\\agent_platform\\template\\react_template\\public\\file-viewer\\vendor\\ppt\\manifest.json",
+      "copied": true,
+      "sourcePackage": "@file-viewer/ppt",
+      "sourceVersion": "0.3.3"
+    },
+    {
+      "rendererId": "office-presentation-binary",
+      "id": "ppt-package",
+      "to": "C:\\Docs\\byMe\\agent_platform\\template\\react_template\\public\\file-viewer\\vendor\\ppt\\package.json",
+      "copied": true,
+      "sourcePackage": "@file-viewer/ppt",
+      "sourceVersion": "0.3.3"
+    },
+    {
+      "rendererId": "office-presentation-binary",
+      "id": "ppt-license",
+      "to": "C:\\Docs\\byMe\\agent_platform\\template\\react_template\\public\\file-viewer\\vendor\\ppt\\LICENSE",
+      "copied": true,
+      "sourcePackage": "@file-viewer/ppt",
+      "sourceVersion": "0.3.3"
+    },
+    {
+      "rendererId": "office-presentation-binary",
+      "id": "ppt-notice",
+      "to": "C:\\Docs\\byMe\\agent_platform\\template\\react_template\\public\\file-viewer\\vendor\\ppt\\NOTICE",
+      "copied": true,
+      "sourcePackage": "@file-viewer/ppt",
+      "sourceVersion": "0.3.3"
+    },
+    {
+      "rendererId": "office-word-openxml",
+      "id": "docx-worker",
+      "to": "C:\\Docs\\byMe\\agent_platform\\template\\react_template\\public\\file-viewer\\vendor\\docx\\docx.worker.js",
+      "copied": true
+    },
+    {
+      "rendererId": "office-word-openxml",
+      "id": "docx-worker-jszip",
+      "to": "C:\\Docs\\byMe\\agent_platform\\template\\react_template\\public\\file-viewer\\vendor\\docx\\jszip.min.js",
+      "copied": true
+    },
+    {
+      "rendererId": "spreadsheet-openxml",
+      "id": "spreadsheet-worker",
+      "to": "C:\\Docs\\byMe\\agent_platform\\template\\react_template\\public\\file-viewer\\vendor\\xlsx\\sheet.worker.js",
+      "copied": true,
+      "sourcePackage": "@file-viewer/renderer-spreadsheet",
+      "sourceVersion": "3.0.0"
+    },
+    {
+      "rendererId": "cad",
+      "id": "cad-wasm-directory",
+      "to": "C:\\Docs\\byMe\\agent_platform\\template\\react_template\\public\\file-viewer\\wasm\\cad",
+      "copied": true,
+      "sourcePackage": "@flyfish-dev/cad-viewer",
+      "sourceVersion": "0.6.4"
+    },
+    {
+      "rendererId": "model",
+      "id": "model-occt-worker",
+      "to": "C:\\Docs\\byMe\\agent_platform\\template\\react_template\\public\\file-viewer\\wasm\\model\\occt-worker.js",
+      "copied": false,
+      "reason": "source asset not found"
+    },
+    {
+      "rendererId": "model",
+      "id": "model-occt-runtime",
+      "to": "C:\\Docs\\byMe\\agent_platform\\template\\react_template\\public\\file-viewer\\wasm\\model\\occt-import-js.js",
+      "copied": false,
+      "reason": "source asset not found"
+    },
+    {
+      "rendererId": "model",
+      "id": "model-occt-wasm",
+      "to": "C:\\Docs\\byMe\\agent_platform\\template\\react_template\\public\\file-viewer\\wasm\\model\\occt-import-js.wasm",
+      "copied": false,
+      "reason": "source asset not found"
+    },
+    {
+      "rendererId": "model",
+      "id": "model-occt-license",
+      "to": "C:\\Docs\\byMe\\agent_platform\\template\\react_template\\public\\file-viewer\\wasm\\model\\LICENSE.occt.txt",
+      "copied": false,
+      "reason": "source asset not found"
+    },
+    {
+      "rendererId": "model",
+      "id": "model-occt-import-license",
+      "to": "C:\\Docs\\byMe\\agent_platform\\template\\react_template\\public\\file-viewer\\wasm\\model\\LICENSE.occt-import-js.txt",
+      "copied": false,
+      "reason": "source asset not found"
+    },
+    {
+      "rendererId": "typst",
+      "id": "typst-compiler-wasm",
+      "to": "C:\\Docs\\byMe\\agent_platform\\template\\react_template\\public\\file-viewer\\wasm\\typst\\typst_ts_web_compiler_bg.wasm",
+      "copied": true
+    },
+    {
+      "rendererId": "typst",
+      "id": "typst-renderer-wasm",
+      "to": "C:\\Docs\\byMe\\agent_platform\\template\\react_template\\public\\file-viewer\\wasm\\typst\\typst_ts_renderer_bg.wasm",
+      "copied": true
+    },
+    {
+      "rendererId": "typst",
+      "id": "typst-font-assets",
+      "to": "C:\\Docs\\byMe\\agent_platform\\template\\react_template\\public\\file-viewer\\wasm\\typst\\fonts",
+      "copied": true
+    },
+    {
+      "rendererId": "archive",
+      "id": "libarchive-worker",
+      "to": "C:\\Docs\\byMe\\agent_platform\\template\\react_template\\public\\file-viewer\\vendor\\libarchive\\worker-bundle.js",
+      "copied": true
+    },
+    {
+      "rendererId": "archive",
+      "id": "libarchive-wasm",
+      "to": "C:\\Docs\\byMe\\agent_platform\\template\\react_template\\public\\file-viewer\\vendor\\libarchive\\libarchive.wasm",
+      "copied": true
+    },
+    {
+      "rendererId": "data-asset",
+      "id": "data-sql-wasm",
+      "to": "C:\\Docs\\byMe\\agent_platform\\template\\react_template\\public\\file-viewer\\wasm\\data\\sql-wasm.wasm",
+      "copied": true
+    }
+  ]
+}

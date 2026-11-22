@@ -1,0 +1,143 @@
+.whiteboard-root {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  pointer-events: none;
+
+  &--fullscreen .whiteboard-panel {
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  &--windowed {
+    /* 不挡底层页面：只有面板自己接收事件 */
+    inset: 0;
+  }
+}
+
+.whiteboard-panel {
+  position: fixed;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: #fff;
+  pointer-events: auto;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 16px 48px rgba(15, 23, 42, 0.18);
+}
+
+.whiteboard-root--windowed .whiteboard-panel {
+  border-radius: 12px;
+}
+
+.whiteboard-drag {
+  flex: 0 0 28px;
+  cursor: grab;
+  background: linear-gradient(180deg, #f1f5f9 0%, #e2e8f0 100%);
+  border-bottom: 1px solid #e2e8f0;
+  touch-action: none;
+  user-select: none;
+
+  &::after {
+    content: '';
+    display: block;
+    width: 36px;
+    height: 4px;
+    margin: 12px auto 0;
+    border-radius: 999px;
+    background: #94a3b8;
+  }
+
+  &:active {
+    cursor: grabbing;
+  }
+}
+
+.whiteboard-resize {
+  position: absolute;
+  right: 2px;
+  bottom: 2px;
+  width: 16px;
+  height: 16px;
+  cursor: nwse-resize;
+  touch-action: none;
+  z-index: 30;
+
+  &::before {
+    content: '';
+    position: absolute;
+    right: 3px;
+    bottom: 3px;
+    width: 10px;
+    height: 10px;
+    border-right: 2px solid #94a3b8;
+    border-bottom: 2px solid #94a3b8;
+    border-radius: 0 0 2px 0;
+  }
+}
+
+.whiteboard-fab {
+  position: absolute;
+  right: 12px;
+  bottom: 64px;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.whiteboard-root--windowed .whiteboard-fab {
+  /* 避开 Excalidraw 右下 Help / 底部工具区 */
+  bottom: 75px;
+  right: 12px;
+}
+
+.whiteboard-fab__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #fff;
+  color: #334155;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.1);
+  transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+
+  &:hover {
+    background: #f8fafc;
+    color: #0f172a;
+    box-shadow: 0 6px 18px rgba(15, 23, 42, 0.14);
+  }
+
+  &--close:hover {
+    background: #fef2f2;
+    color: #b91c1c;
+    border-color: #fecaca;
+  }
+}
+
+.whiteboard-canvas {
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  position: relative;
+
+  .excalidraw {
+    height: 100%;
+  }
+}
+
+.whiteboard-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  background: #f8fafc;
+}

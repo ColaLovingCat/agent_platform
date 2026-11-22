@@ -1,0 +1,308 @@
+<script lang="ts" setup>
+import { reactive } from 'vue'
+
+import { logger } from '@/commons/utils/logger'
+const log = logger.create("Mock");
+
+import { useRouter } from 'vue-router'
+const routers = useRouter()
+
+// name
+defineOptions({
+  name: 'app-comps'
+})
+
+const pageInfos = reactive({
+  datas: [
+    {
+      group: '组件',
+      list: [
+        { name: 'forms', path: '/forms-using', icon: 'fa-table-list', status: 'done' },
+        { name: 'upload', path: '/upload-using', icon: 'fa-upload', status: 'done' },
+        { name: 'eCharts', path: '/eCharts-using', icon: 'fa-chart-line', status: 'done' },
+        { name: 'word cloud', path: '/charts-cloud', icon: 'fa-spell-check', status: 'done' },
+        { name: 'graph', path: '/charts-graph', icon: 'fa-hexagon-nodes', status: 'done' },
+        { name: 'chats', path: '/chats-using', icon: 'fa-comments', status: '' },
+        { name: 'camera & scan', path: '/camera-using', icon: 'fa-camera', status: 'done' },
+        { name: 'barcode', path: '/barcode-using', icon: 'fa-barcode', status: 'done' },
+        { name: 'workflows', path: '/workflows-using', icon: 'fa-diagram-project', status: '' },
+        { name: 'drag list', path: '/drag-using', icon: 'fa-arrow-down-1-9', status: '' },
+        { name: 'threejs', path: '/three-using', icon: 'fa-cube', status: '' },
+        { name: 'code', path: '/editors-code', icon: 'fa-code', status: 'done' },
+
+        { name: 'flips', path: '/flips-using', icon: 'fa-arrow-down-1-9', status: 'done' },
+        { name: 'article', path: '/article-using', icon: 'fa-newspaper', status: 'done' },
+        { name: 'type writer', path: '/type-using', icon: 'fa-feather', status: '' },
+        { name: 'gantt', path: '/gantt-using', icon: 'fa-chart-gantt', status: '' },
+        { name: 'annotations', path: '/label-using', icon: 'fa-tags', status: '' },
+        { name: 'robot', path: '/robot-using', icon: 'fa-robot', status: '' },
+
+        { name: 'gsap', path: '/gsap-using', icon: 'fa-diagram-project', status: '' },
+
+        { name: 'multi filters', path: '/multi-filter-using', icon: 'fa-list-check', status: 'done' },
+        { name: 'handson table', path: '/handson-using', icon: 'fa-table', status: 'try' },
+        { name: 'anime', path: '/anime-using', icon: 'fa-diagram-project', status: 'open' },
+        { name: 'motion', path: '/motion-using', icon: 'fa-diagram-project', status: 'try' },
+      ]
+    },
+    {
+      group: '语法',
+      list: [
+        { name: 'extend', path: '/extend-using', icon: 'fa-infinity', status: 'done' },
+        { name: 'directives', path: '/directives-using', icon: 'fa-keyboard', status: 'done' },
+        { name: 'hooks', path: '/hooks-using', icon: 'fa-keyboard', status: '' },
+        { name: 'IndexedDB', path: '/IndexedDB-using', icon: 'fa-database', status: 'done' },
+      ]
+    },
+    {
+      group: '页面',
+      list: [
+        { name: 'user manage', path: '/configs-users', icon: 'fa-users', status: 'done' },
+        { name: 'api test', path: '/post-api', icon: 'fa-link', status: 'done' },
+        { name: 'OS', path: '/os-using', icon: 'fa-computer', status: 'open' },
+        { name: 'styles', path: '/style-using', icon: 'fa-paintbrush', status: '' },
+        { name: 'background', path: '/bgs-using', icon: 'fa-window-restore', status: '' },
+      ]
+    },
+  ]
+})
+
+const pageGo = (path: string, query: any = {}) => {
+  routers.push({
+    path,
+    query
+  })
+}
+</script>
+
+<template>
+  <div class="dashboard-bright">
+    <!-- 背景装饰：弥散光球 -->
+    <div class="glow-sphere sphere-1"></div>
+    <div class="glow-sphere sphere-2"></div>
+
+    <div v-for="group in pageInfos.datas" :key="group.group" class="group-container">
+      <div class="group-header">
+        <span class="group-tag">Explore</span>
+        <h2 class="group-title">{{ group.group }}</h2>
+        <div class="title-line"></div>
+      </div>
+
+      <div class="card-layout">
+        <div v-for="item in group.list" :key="item.name" class="neo-card" @click="pageGo(item.path)">
+          <div class="card-inner">
+            <!-- 左侧图标：渐变背景 -->
+            <div :class="['icon-wrapper', item.status]">
+              <i :class="['fa-solid', item.icon]"></i>
+            </div>
+
+            <div class="text-content">
+              <div class="name-row">
+                <span class="item-name">{{ item.name }}</span>
+                <!-- 状态标识：小圆点或简洁图标 -->
+                <i v-if="item.status === 'done'" class="fa-solid fa-check-circle status-icon done"></i>
+                <i v-else-if="item.status === 'try'" class="fa-solid fa-flask status-icon try"></i>
+                <i v-else-if="item.status === 'open'" class="fa-solid fa-rocket status-icon open"></i>
+              </div>
+              <span class="item-path">{{ item.path }}</span>
+            </div>
+
+            <!-- 右侧箭头：悬浮显示 -->
+            <div class="arrow-go">
+              <i class="fa-solid fa-chevron-right"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<style scoped lang="scss">
+/* 蓝白清新背景 */
+.dashboard-bright {
+  position: relative;
+  padding: 50px 8%;
+  min-height: 100vh;
+  overflow: hidden;
+  background-color: #f0f5ff;
+  background-image:
+    radial-gradient(at 0% 0%, rgba(255, 255, 255, 1) 0, transparent 50%),
+    radial-gradient(at 50% 0%, rgba(224, 235, 255, 1) 0, transparent 50%),
+    linear-gradient(180deg, #f8faff 0%, #e0eaff 100%);
+}
+
+/* 背景光球装饰 */
+.glow-sphere {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  z-index: 0;
+}
+
+.sphere-1 {
+  width: 400px;
+  height: 400px;
+  background: rgba(0, 102, 255, 0.1);
+  top: -100px;
+  right: -100px;
+}
+
+.sphere-2 {
+  width: 300px;
+  height: 300px;
+  background: rgba(0, 163, 255, 0.08);
+  bottom: 10%;
+  left: -50px;
+}
+
+/* 分组样式 */
+.group-container {
+  margin-bottom: 60px;
+  position: relative;
+  z-index: 1;
+}
+
+.group-header {
+  margin-bottom: 25px;
+  display: flex;
+  flex-direction: column;
+}
+
+.group-tag {
+  font-size: 12px;
+  font-weight: 800;
+  color: #0066ff;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  margin-bottom: 4px;
+}
+
+.group-title {
+  font-size: 28px;
+  font-weight: 800;
+  color: #1e293b;
+  margin: 0;
+}
+
+.title-line {
+  width: 40px;
+  height: 4px;
+  background: #0066ff;
+  border-radius: 2px;
+  margin-top: 8px;
+}
+
+/* 响应式网格 */
+.card-layout {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
+}
+
+/* 核心卡片样式：新拟态/明亮扁平化 */
+.neo-card {
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(255, 255, 255, 1);
+  border-radius: 20px;
+  padding: 16px;
+  cursor: pointer;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  backdrop-filter: blur(10px);
+}
+
+.neo-card:hover {
+  transform: translateY(-8px) scale(1.02);
+  background: #ffffff;
+  box-shadow: 0 20px 25px -5px rgba(0, 102, 255, 0.1), 0 10px 10px -5px rgba(0, 102, 255, 0.04);
+  border-color: rgba(0, 102, 255, 0.2);
+}
+
+.card-inner {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  position: relative;
+}
+
+/* 图标修饰 */
+.icon-wrapper {
+  width: 54px;
+  height: 54px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f0f7ff;
+  transition: all 0.3s;
+}
+
+.icon-wrapper i {
+  font-size: 20px;
+  color: #0066ff;
+}
+
+.neo-card:hover .icon-wrapper {
+  background: #0066ff;
+  transform: rotate(-10deg);
+}
+
+.neo-card:hover .icon-wrapper i {
+  color: #ffffff;
+}
+
+/* 文字区 */
+.text-content {
+  flex: 1;
+}
+
+.name-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.item-name {
+  font-weight: 700;
+  color: #334155;
+  font-size: 1.1rem;
+}
+
+.item-path {
+  font-size: 12px;
+  color: #94a3b8;
+  margin-top: 2px;
+  display: block;
+}
+
+/* 状态颜色 */
+.status-icon {
+  font-size: 14px;
+}
+
+.status-icon.done {
+  color: #10b981;
+}
+
+.status-icon.try {
+  color: #f59e0b;
+}
+
+.status-icon.open {
+  color: #3b82f6;
+}
+
+/* 悬浮箭头 */
+.arrow-go {
+  opacity: 0;
+  transform: translateX(-10px);
+  transition: all 0.3s;
+  color: #0066ff;
+}
+
+.neo-card:hover .arrow-go {
+  opacity: 1;
+  transform: translateX(0);
+}
+</style>

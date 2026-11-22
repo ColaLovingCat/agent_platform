@@ -1,0 +1,16 @@
+@import "tailwindcss";
+
+@theme {
+  --color-brand-50: #eef5ff;
+  --color-brand-100: #d9e7ff;
+  --color-brand-200: #b8d2fa;
+  --color-brand-300: #8ab5f3;
+  --color-brand-400: #4d92e6;
+  --color-brand-500: #0078d4;
+  --color-brand-600: #0064b3;
+  --color-brand-700: #004f8f;
+  --color-brand-800: #003c6c;
+  --color-brand-900: #002a4d;
+}
+
+@import "./assets/styles/workflow.css";

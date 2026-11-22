@@ -1,0 +1,95 @@
+/* Modern Enterprise SaaS Card Style */
+.box {
+    position: relative;
+    background: #ffffff;
+    border: 1px solid rgba(229, 231, 235, 0.8);
+    border-radius: 12px;
+    overflow: hidden;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.box:hover {
+    border-color: rgba(99, 102, 241, 0.3);
+}
+
+.box-shadow {
+    box-shadow: 
+        0 1px 3px rgba(0, 0, 0, 0.04),
+        0 4px 12px rgba(0, 0, 0, 0.03);
+}
+
+.box-shadow:hover {
+    box-shadow: 
+        0 4px 6px rgba(0, 0, 0, 0.04),
+        0 10px 24px rgba(0, 0, 0, 0.06);
+    transform: translateY(-2px);
+}
+
+.box .box-header {
+    position: relative;
+    min-height: 56px;
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    border-bottom: 1px solid rgba(229, 231, 235, 0.6);
+    background: linear-gradient(135deg, #fafbfc 0%, #ffffff 100%);
+}
+
+.box .box-header::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 100%;
+    background: linear-gradient(180deg, #6366f1 0%, #8b5cf6 100%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.box:hover .box-header::before {
+    opacity: 1;
+}
+
+.box .box-header .titles {
+    color: #1f2937;
+    font-size: 1rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    line-height: 1.5;
+}
+
+.box .box-contents {
+    padding: 20px 24px;
+    background: #ffffff;
+}
+
+.box .box-footer {
+    padding: 16px 24px;
+    border-top: 1px solid rgba(229, 231, 235, 0.6);
+    background: linear-gradient(180deg, #ffffff 0%, #fafbfc 100%);
+}
+
+/* Gradient Accent Variant */
+.box.box-gradient {
+    border-top: 3px solid transparent;
+    border-image: linear-gradient(90deg, #6366f1, #8b5cf6, #a855f7) 1;
+}
+
+.box.box-gradient .box-header::before {
+    display: none;
+}
+
+/* Primary Accent Variant */
+.box.box-primary .box-header {
+    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+    border-bottom: none;
+}
+
+.box.box-primary .box-header .titles {
+    color: #ffffff;
+}
+
+.box.box-primary .box-header::before {
+    display: none;
+}

@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WebSocket 测试客户端</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f0f2f5;
+        }
+
+        .container {
+            height: calc(100vh - 40px);
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            gap: 20px;
+            margin: 0 auto;
+        }
+
+        .control-panel {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .message-box {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            overflow-y: auto;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-check {
+            display: flex;
+        }
+
+            .form-check input {
+                width: 21px;
+            }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #333;
+            font-weight: bold;
+        }
+
+        input,
+        select,
+        textarea {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+
+        button {
+            background-color: #1890ff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+            button:hover {
+                background-color: #40a9ff;
+            }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .connected {
+            background-color: #52c41a;
+        }
+
+        .disconnected {
+            background-color: #ff4d4f;
+        }
+
+        .message-item {
+            margin-bottom: 15px;
+            padding: 10px;
+            border-radius: 4px;
+            background-color: #fafafa;
+        }
+
+        .message-infos {
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .message-content {
+            display: flex;
+            flex-direction: column;
+            row-gap: 8px;
+        }
+
+        .item-category,
+        .item-message {
+            font-weight: 700;
+        }
+
+        .item-time,
+        .item-remarks {
+            color: #0000007d;
+        }
+    </style>
+</head>
+<body>
+    <div id="app" class="container">
+        <div class="control-panel">
+            <div class="status-indicator" v-show="!isConnected">
+                <div class="status-dot disconnected"></div>
+                <span>已断开</span>
+            </div>
+            <div class="status-indicator" v-show="isConnected">
+                <div class="status-dot connected"></div>
+                <span>已连接</span>
+            </div>
+
+            <div>
+                <p>start time: {{ times[0] }}</p>
+                <p>end time: {{ times[1] }}</p>
+                <p></p>
+            </div>
+
+            <div class="form-group">
+                <label>发送方</label>
+                <input type="text" v-model="form.from" placeholder="输入发送方ID" />
+            </div>
+            <div class="form-group">
+                <label>接收方</label>
+                <input type="text" v-model="form.to" placeholder="输入接收方ID" />
+            </div>
+
+            <div class="form-group">
+                <label>连接 ID</label>
+                <input type="text"
+                       v-model="form.connectionID"
+                       placeholder="输入链接ID" />
+            </div>
+
+            <div class="form-group">
+                <label>消息分类</label>
+                <select v-model="form.category">
+                    <option value="text">文本</option>
+                    <option value="list">列表</option>
+                    <option value="table">表格</option>
+                    <option value="chart_basic">基础图表</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>消息内容</label>
+                <textarea v-model="form.message" rows="15"></textarea>
+            </div>
+            <div class="form-group">
+                <label>备注信息</label>
+                <textarea v-model="form.remarks" rows="5"></textarea>
+            </div>
+
+            <button onclick="sendMessage()">发送消息</button>
+            <button onclick="clearMessage()">清除列表</button>
+        </div>
+
+        <div class="message-box" id="messageContainer">
+            <div class="message-item" v-for="item in msgs">
+                <div class="message-infos">
+                    <div class="item-category">{{item.category}}</div>
+                    <div class="item-time">
+                        [{{item.connectionID}}] [{{item.from}} >> {{item.to}}] [{{new Date(item.timestamp).toLocaleString()}}]
+                    </div>
+                </div>
+                <div class="message-content">
+                    <div class="item-message">{{item.message}}</div>
+                    <div class="item-remarks">{{item.remarks}}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="./libs/vue/vue.min.js"></script>
+    <script>
+        var app = new Vue({
+            el: "#app",
+            data: {
+                isConnected: false,
+                socketID: '',
+                times: ["", ""],
+                form: {
+                    connectionID: "",
+                    from: "",
+                    to: "",
+                    category: "text",
+                    message: "",
+                    remarks: '{"paragraph_start":1,"response_end":0}'
+                },
+                msgs: [],
+            },
+        });
+    </script>
+
+    <script>
+        const host = `${window.location.protocol == "http:" ? "ws" : "wss"}://${window.location.host
+            }/ws`;
+        console.log("[WS] host:", host)
+        const ws = new WebSocket(host);
+
+        // 连接事件处理
+        ws.onopen = () => {
+            console.info("[Connection] 已连接");
+            app.times[0] = new Date().toLocaleString()
+            app.isConnected = true;
+        };
+        ws.onmessage = (event) => {
+            try {
+                console.info("[Message]", event.data);
+                const message = JSON.parse(event.data);
+                appendMessage(message);
+                //
+                if (message.category == "init") {
+                    const data = JSON.parse(message.message);
+                    app.form.from = data.socketID
+                    app.form.to = data.serverID
+                }
+            } catch (e) {
+                console.error("[Message] 解析失败", e);
+            }
+        };
+        ws.onclose = () => {
+            console.info("[Disconnection] 已断开");
+            app.times[1] = new Date().toLocaleString()
+            app.isConnected = false;
+        };
+
+        // 消息发送函数
+        function sendMessage() {
+            const messageData = { ...app.form };
+            ws.send(JSON.stringify(messageData));
+        }
+
+        // 添加消息到显示区域
+        function appendMessage(msg) {
+            app.msgs.push(msg);
+            //
+            const container = document.getElementById("messageContainer");
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function clearMessage() {
+            app.msgs = [];
+        }
+    </script>
+</body>
+</html>

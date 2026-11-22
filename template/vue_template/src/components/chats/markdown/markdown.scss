@@ -1,0 +1,191 @@
+.markdown-contents {
+  /* 加粗 */
+  strong {
+    // **xxx**
+  }
+  /* 斜体 */
+  em {
+    // *xxx*
+    margin-right: 3px;
+  }
+  /* 删除线 */
+  s {
+    // ~~xxx~~
+    margin: 0 3px;
+    color: #999;
+  }
+
+  /* 标题 # xxx H1~H6 */
+  h1 {
+    font-size: 2em;
+    font-weight: bold;
+    margin: 1em 0 0.5em;
+  }
+  h2 {
+    font-size: 1.75em;
+    font-weight: bold;
+    margin: 0.9em 0 0.45em;
+  }
+  h3 {
+    font-size: 1.5em;
+    font-weight: bold;
+    margin: 0.8em 0 0.4em;
+  }
+  h4 {
+    font-size: 1.25em;
+    font-weight: bold;
+    margin: 0.7em 0 0.35em;
+  }
+  h5 {
+    font-size: 1em;
+    font-weight: bold;
+    margin: 0.6em 0 0.3em;
+  }
+  h6 {
+    font-size: 0.875em;
+    font-weight: bold;
+    margin: 0.5em 0 0.25em;
+  }
+
+  .clickable-text,
+  a {
+    cursor: pointer;
+    color: #0366d6;
+    text-decoration: none;
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+
+  /* 水平分割线 */
+  hr {
+    // ---\n
+    border: none;
+    border-top: 1px solid #dfe2e5;
+    margin: 1em 0;
+  }
+
+  /* 列表 */
+  ul {
+    // - xxx
+    list-style: disc inside;
+    margin: 0.5em 0 0.5em 1em;
+  }
+  ol {
+    list-style: decimal inside;
+    margin: 0.5em 0 0.5em 1em;
+  }
+  li {
+    margin: 0.25em 0;
+  }
+
+  /* 表格 */
+  table {
+    margin: 1em 0;
+    width: 100%;
+    border-collapse: collapse;
+  }
+  th {
+    background-color: #f0f0f0;
+  }
+  th,
+  td {
+    padding: 0.5em 1em;
+    text-align: left;
+    border: 1px solid #dfe2e5;
+  }
+
+  /* 代码 */
+  code {
+    // \`xxx\`
+    margin: 0 0.3rem;
+    padding: 0.15rem 0.3rem;
+    color: #0d0d0d;
+    font-size: 0.875em;
+    font-weight: 500;
+    border-radius: 0.25rem;
+    background-color: #ececec;
+  }
+
+  /* 引用 */
+  blockquote {
+    // >xxx
+    margin: 0.5em 0;
+    padding-left: 1em;
+    color: #6a737d;
+    border-left: 4px solid #dfe2e5;
+    background-color: #f8f9fa;
+  }
+
+  /* 代码段 */
+  .code-block {
+    // ```css\nxxx```
+    position: relative;
+    width: max-content;
+    min-width: 500px;
+    margin-bottom: 10px;
+    color: #ffffff;
+    border-radius: 6px;
+    background: #2d2d2d;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+
+    code {
+      margin: unset;
+      padding: unset;
+      color: unset;
+      background: unset;
+    }
+
+    .code-type {
+      padding: 5px;
+      color: #9d9d9d;
+    }
+
+    .code-copy {
+      position: absolute;
+      top: 5px;
+      right: 5px;
+      width: 60px;
+      float: left;
+      cursor: pointer;
+      padding: 5px 10px;
+      color: white;
+      font-size: 12px;
+      line-height: 15px;
+      border: none;
+      border-radius: 3px;
+      background: #c4cecf9d;
+    }
+
+    .hljs {
+      position: relative;
+      padding: 10px;
+      overflow: auto;
+    }
+  }
+
+  /* 限制公式滚动，防止撑开页面 */
+  :deep(.katex-display) {
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 5px 0;
+    margin: 10px 0;
+    max-width: 100%;
+  }
+
+  /* 让行内公式稍微大一点点好阅读 */
+  :deep(.katex) {
+    font-size: 1.1em;
+  }
+}
+
+// dark
+html[data-theme="dark"] {
+  .markdown-contents {
+    th {
+      background-color: #323232d9;
+    }
+  }
+}

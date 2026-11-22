@@ -1,0 +1,40 @@
+.box-configs {
+  position: relative;
+  padding: 15px;
+
+  .config-header {
+    margin-bottom: 10px;
+    color: #2029459e;
+  }
+
+  .config-contents {
+    height: calc(100vh - 160px);
+    overflow: auto;
+
+    .titles {
+      margin: 10px 0;
+      padding: 5px 0;
+      font-size: 14px;
+      font-weight: 700;
+      color: #0f1528a1;
+      font-weight: 700;
+      border-bottom: 1px dashed #0000004d;
+    }
+  }
+
+  .config-footer {
+    padding-top: 10px;
+    border-top: 1px solid #c4cecf;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    .btn {
+      padding: 4px 10px;
+    }
+  }
+}
+
+.btn {
+  padding: 5px 20px;
+}
